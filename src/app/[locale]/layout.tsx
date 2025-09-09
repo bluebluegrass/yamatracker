@@ -1,32 +1,26 @@
 import {NextIntlClientProvider} from 'next-intl';
 import {getMessages} from 'next-intl/server';
-import {notFound} from 'next/navigation';
-
-const locales = ['en', 'ja', 'zh'];
+import { ToastProvider } from '@/hooks/useToast';
+import '../globals.css';
 
 export default async function RootLayout({
   children,
-  params: {locale}
+  params
 }: {
   children: React.ReactNode;
-  params: {locale: string};
+  params: Promise<{locale: string}>;
 }) {
-  // Validate that the incoming `locale` parameter is valid
-  if (!locales.includes(locale)) {
-    notFound();
-  }
-
+  const {locale} = await params;
+  
   // Providing all messages to the client
   // side is the easiest way to get started
-  const messages = await getMessages();
+  const messages = await getMessages({locale});
 
   return (
-    <html lang={locale}>
-      <body>
-        <NextIntlClientProvider messages={messages}>
-          {children}
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <NextIntlClientProvider messages={messages} locale={locale}>
+      <ToastProvider>
+        {children}
+      </ToastProvider>
+    </NextIntlClientProvider>
   );
 }

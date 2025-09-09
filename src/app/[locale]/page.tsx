@@ -1,44 +1,72 @@
-import {useTranslations} from 'next-intl';
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import Link from 'next/link';
 
 export default function Home() {
   const t = useTranslations();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to dashboard after a short delay
+    const timer = setTimeout(() => {
+      router.push('/dashboard');
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [router]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-8 text-gray-900">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="max-w-2xl mx-auto text-center px-8">
+        <h1 className="text-5xl font-bold text-gray-900 mb-6">
           {t('title')}
         </h1>
         
-        {/* Test Tailwind classes */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">Test Card 1</h2>
-            <p className="text-gray-600">This card tests basic Tailwind styling.</p>
-          </div>
-          <div className="bg-blue-50 p-6 rounded-lg shadow-md border-l-4 border-blue-500">
-            <h2 className="text-xl font-semibold mb-4 text-blue-800">Test Card 2</h2>
-            <p className="text-blue-600">This card tests color variations.</p>
-          </div>
-          <div className="bg-green-50 p-6 rounded-lg shadow-md border-l-4 border-green-500">
-            <h2 className="text-xl font-semibold mb-4 text-green-800">Test Card 3</h2>
-            <p className="text-green-600">This card tests responsive grid.</p>
+        <p className="text-xl text-gray-600 mb-8">
+          Track your progress climbing Japan's 100 Famous Mountains
+        </p>
+
+        <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Get Started</h2>
+          <p className="text-gray-600 mb-6">
+            Sign up to start tracking your mountain climbing journey and share your progress with others.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/signup"
+              className="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+            >
+              Sign Up
+            </Link>
+            <Link
+              href="/login"
+              className="px-8 py-3 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors font-medium"
+            >
+              Sign In
+            </Link>
           </div>
         </div>
 
-        {/* Test custom classes from globals.css */}
-        <div className="text-center">
-          <div className="progress-counter">0/100</div>
-          <div className="mountain-name completed">富士山</div>
-          <div className="mountain-name not-completed">槍ヶ岳</div>
+        <div className="text-sm text-gray-500">
+          Redirecting to dashboard in a moment...
         </div>
 
-        {/* Language switcher for testing */}
-        <div className="text-center mt-8">
-          <div className="inline-flex gap-4">
-            <a href="/en" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">English</a>
-            <a href="/ja" className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">日本語</a>
-            <a href="/zh" className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">中文</a>
+        {/* Language switcher */}
+        <div className="mt-8">
+          <div className="inline-flex gap-2">
+            <Link href="/en" className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+              🇬🇧 English
+            </Link>
+            <Link href="/ja" className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+              🇯🇵 日本語
+            </Link>
+            <Link href="/zh" className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+              🇨🇳 中文
+            </Link>
           </div>
         </div>
       </div>

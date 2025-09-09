@@ -1,0 +1,95 @@
+[
+  {
+    "id": "mt_fuji",
+    "name_ja": "富士山",
+    "name_en": "Mount Fuji",
+    "name_zh": "富士山",
+    "region": "関東",
+    "prefecture": "静岡県・山梨県",
+    "elevation_m": 3776
+  },
+  {
+    "id": "mt_yari",
+    "name_ja": "槍ヶ岳",
+    "name_en": "Mount Yari",
+    "name_zh": "枪岳",
+    "region": "中部",
+    "prefecture": "長野県・岐阜県",
+    "elevation_m": 3180
+  },
+  {
+    "id": "mt_hotaka",
+    "name_ja": "穂高岳",
+    "name_en": "Mount Hotaka",
+    "name_zh": "穗高岳",
+    "region": "中部",
+    "prefecture": "長野県・岐阜県",
+    "elevation_m": 3190
+  },
+  {
+    "id": "mt_kitadake",
+    "name_ja": "北岳",
+    "name_en": "Mount Kitadake",
+    "name_zh": "北岳",
+    "region": "中部",
+    "prefecture": "山梨県",
+    "elevation_m": 3193
+  },
+  {
+    "id": "mt_ainodake",
+    "name_ja": "間ノ岳",
+    "name_en": "Mount Ainodake",
+    "name_zh": "间之岳",
+    "region": "中部",
+    "prefecture": "山梨県・静岡県",
+    "elevation_m": 3189
+  },
+  {
+    "id": "mt_yarigatake",
+    "name_ja": "槍ヶ岳",
+    "name_en": "Mount Yari",
+    "name_zh": "枪岳",
+    "region": "中部",
+    "prefecture": "長野県・岐阜県",
+    "elevation_m": 3180
+  },
+  {
+    "id": "mt_warusawa",
+    "name_ja": "悪沢岳",
+    "name_en": "Mount Warusawa",
+    "name_zh": "恶泽岳",
+    "region": "中部",
+    "prefecture": "静岡県",
+    "elevation_m": 3141
+  },
+  {
+    "id": "mt_kaikoma",
+    "name_ja": "甲斐駒ヶ岳",
+    "name_en": "Mount Kaikoma",
+    "name_zh": "甲斐驹岳",
+    "region": "中部",
+    "prefecture": "山梨県・長野県",
+    "elevation_m": 2967
+  },
+  {
+    "id": "mt_senjo",
+    "name_ja": "仙丈ヶ岳",
+    "name_en": "Mount Senjo",
+    "name_zh": "仙丈岳",
+    "region": "中部",
+    "prefecture": "山梨県・長野県",
+    "elevation_m": 3033
+  },
+  {
+    "id": "mt_norikura",
+    "name_ja": "乗鞍岳",
+    "name_en": "Mount Norikura",
+    "name_zh": "乘鞍岳",
+    "region": "中部",
+    "prefecture": "長野県・岐阜県",
+    "elevation_m": 3026
+  }
+]
+
+
+
