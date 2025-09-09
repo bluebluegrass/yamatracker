@@ -1,9 +1,13 @@
+import {useTranslations} from 'next-intl';
+
 export default function Home() {
+  const t = useTranslations();
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold text-center mb-8 text-gray-900">
-          Japan's 100 Famous Mountains Tracker
+          {t('title')}
         </h1>
         
         {/* Test Tailwind classes */}
@@ -27,6 +31,15 @@ export default function Home() {
           <div className="progress-counter">0/100</div>
           <div className="mountain-name completed">富士山</div>
           <div className="mountain-name not-completed">槍ヶ岳</div>
+        </div>
+
+        {/* Language switcher for testing */}
+        <div className="text-center mt-8">
+          <div className="inline-flex gap-4">
+            <a href="/en" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">English</a>
+            <a href="/ja" className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">日本語</a>
+            <a href="/zh" className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">中文</a>
+          </div>
         </div>
       </div>
     </div>
