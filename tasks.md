@@ -1,178 +1,167 @@
-MVP Build Plan — Japan 100 Mountains
-Phase 1 — Project Setup
+tasks.md — Step-by-step with debug checkpoints
 
-Initialize Next.js App
+v0 (region card grid + top counter) already exists. We now implement v0.5 using the snapshot pattern. Do tasks in order; stop after each task.
 
-Create new Next.js App Router project with TypeScript + Tailwind.
+Phase 2.5 — Snapshot plumbing & UI
+Task 1 — Create RPCs and indexes (DB)
 
-Verify npm run dev starts successfully.
+Goal: install dashboard_snapshot() and toggle_completion() and verify outputs.
 
-Add Global Styles
+ Run the SQL blocks from architecture.md (views, functions, grants).
 
-Create styles/globals.css.
+ Add helpful indexes if missing:
 
-Confirm Tailwind utility classes render correctly.
+create index if not exists idx_um_user on user_mountains(user_id);
+create index if not exists idx_um_mountain on user_mountains(mountain_id);
 
-Add i18n Framework
 
-Install and configure next-intl.
+Acceptance / Debug
 
-Create minimal translation files (ja.json, en.json, zh.json) with one string.
+In Supabase SQL editor: select dashboard_snapshot();
 
-Test locale switching works.
+Check JSON contains: total=100, arrays populated, counts sane.
 
-Phase 2 — Static Mountain List
+Try select toggle_completion('mt_yotei', true); then dashboard_snapshot() again → counts changed.
 
-Seed Mountain Data (JSON)
+Task 2 — Server fetcher & types
 
-Create lib/data/mountains.json with at least 3 sample mountains (id, Kanji, region).
+Goal: centralize a single, typed fetch.
 
-Test file loads in a page.
+ Add types/dashboard.ts with DashboardSnapshot types (above).
 
-Create MountainName Component
+ Add lib/supabase/api.ts with getSnapshot() & toggleAndGetSnapshot() (above).
+Acceptance / Debug
 
-Accepts props: { nameJa, done }.
+Temporary server route /api/debug-snapshot returns the JSON from getSnapshot() (delete later).
 
-Renders Kanji in grey if done=false, black if done=true.
+Task 3 — DashboardProvider (client store)
 
-Test by rendering two examples side by side.
+Goal: one store that owns the snapshot and exposes toggle().
 
-Create Dashboard Page
+ components/dashboard/DashboardProvider.tsx (client):
 
-Import mountains.json.
+React context: { snapshot, actions: { toggle(id, mark) } }
 
-Render all mountain names with MountainName.
+toggle() calls toggleAndGetSnapshot(); on success, replace snapshot.
 
-Test: page shows Kanji list.
+Add optional debug logs around RPC duration & returned completed.
+Acceptance / Debug
 
-Add ProgressCounter Component
+Simple dev page prints snapshot.completed and a “fake toggle” button → number updates.
 
-Accepts props: { completedCount }.
+Task 4 — Wire the page
 
-Displays text X/100.
+Goal: server page fetch snapshot once, pass to provider.
 
-Test: with 2 completed, shows 2/100.
+ In app/[locale]/(main)/dashboard/page.tsx:
 
-Wire Progress Counter to State
+Server: const snapshot = await getSnapshot(serverSupabase)
 
-Add local React state completedIds: string[].
+Render:
 
-Count length for ProgressCounter.
+<DashboardProvider initialSnapshot={snapshot}>
+  <ProgressOverview/>
+  <TwoPane>
+    <ChecklistSidebar/>
+    <RegionTiles/>
+  </TwoPane>
+  <FooterProgress/>
+</DashboardProvider>
 
-Test: clicking toggle updates both the name style and counter.
 
-Phase 3 — State Persistence (Supabase)
+Acceptance / Debug
 
-Setup Supabase Client
+Page loads with real numbers from DB.
 
-Add lib/supabase/client.ts with connection code.
+Refresh = same numbers (persisted).
 
-Test: can connect anonymously.
+Task 5 — ChecklistSidebar
 
-Create Database Schema
+Goal: pure presentational list bound to store.
 
-Create tables: users, mountains, user_mountains.
+ Read snapshot.completed_ids to mark checked states.
 
-Seed mountains with sample rows.
+ On checkbox change → actions.toggle(id, mark).
 
-Test: SELECT * FROM mountains works.
+ (Optional) Search/filter textbox.
+Acceptance / Debug
 
-Configure RLS Policies
+Toggling a box updates all of:
 
-Add Row-Level Security for user_mountains.
+list checkmark,
 
-Test: anonymous cannot write; logged-in user can write their own rows.
+ProgressOverview numbers,
 
-Integrate Supabase Auth
+RegionTiles counts,
 
-Add login/signup pages.
+Badges / Difficulty bars (once implemented).
 
-Test: user can sign up, session token stored.
+Task 6 — DifficultyBreakdown
 
-Fetch Completed from DB
+Goal: read snapshot.by_difficulty and render bars.
 
-Dashboard loads user’s completed mountain IDs from user_mountains.
+ No independent fetch/derive; only use store snapshot.
+Acceptance / Debug
 
-Test: toggling persists to DB, refresh page keeps state.
+After toggling in Sidebar, bars update immediately.
 
-Phase 4 — Sharing (v1)
+Task 7 — BadgeDisplay
 
-Add Slug Field to Users
+Goal: read snapshot.badges and render icons/labels.
 
-Generate slug at signup.
+ Badge keys map to i18n labels/icons.
+Acceptance / Debug
 
-Test: /u/{slug} route resolves to profile.
+After hitting thresholds (1, 10, 50, any 5★), badges appear without refresh.
 
-Create Public Profile Page
+Task 8 — RegionTiles
 
-Query user by slug.
+Goal: read snapshot.by_region and render 8 tiles.
 
-Render username + completed count.
+ Tile color = completion %; click/hover emits region filter to Sidebar (optional).
+Acceptance / Debug
 
-Test: visiting /u/{slug} works without auth.
+Toggling mountains in a region updates that tile’s counts.
 
-Add QR Code Utility
+Phase 3 — Hardening
+Task 9 — Error & loading states
 
-Generate QR code from profile URL.
+ Provider tracks isMutating, lastError.
 
-Test: QR scans to correct /u/{slug}.
+ Disable checkboxes during toggle; show toast on error; on failure do not mutate local snapshot.
+Acceptance / Debug
 
-Add Share Image Generator
+Simulate network failure (turn off Supabase) → UI shows toast, state stays consistent.
 
-Render username + progress + QR into canvas.
+Task 10 — A11y & i18n
 
-Export as PNG.
+ Keyboard interactions for Sidebar; aria attributes on checkboxes and bars.
 
-Test: clicking “Download” produces correct PNG.
+ Strings added to i18n bundles.
 
-Add OG Image Endpoint
+Phase 4 — Sharing
+Task 11 — JapanOutline (share-only)
 
-Create app/api/og/route.tsx using Satori/Resvg.
+ components/share/JapanOutline.tsx shades each region using snapshot.by_region.
 
-Test: visiting /api/og?slug=xxx returns image.
+ ShareImageGenerator.tsx composes username, X/100, QR, and JapanOutline.
+Acceptance / Debug
 
-Phase 5 — Polish & Hardening
+Manually generate a PNG; colors match the RegionTiles numbers.
 
-Add Region Grouping
+Task 12 — /api/og
 
-Group mountains by region in dashboard.
+ Use same composition server-side; return image for OG.
 
-Test: sections titled 北海道・東北, 関東, etc.
+Phase 5 — Cleanup
+Task 13 — Remove debug route, keep feature flag for logs
+Task 14 — Docs: add “How to debug snapshot” (run RPCs in SQL editor)
+Golden rules (to avoid going in circles)
 
-Add Language Switcher
+No component does its own fetch or independent calculations.
 
-Header with JA / EN / 中文.
+Every UI change comes from replacing the single snapshot returned by the server.
 
-Test: switches translation files.
+Never “optimistically” edit the snapshot locally. Wait for RPC → replace.
 
-Accessibility Review
-
-Ensure buttons are keyboard-focusable.
-
-Add aria-pressed to mountain toggles.
-
-Test with keyboard-only navigation.
-
-Add Basic Error Handling
-
-Show toast if Supabase write fails.
-
-Test: simulate network error → toast appears.
-
-Deploy to Vercel
-
-Connect Supabase + environment variables.
-
-Test: signup/login, check-in, share link all work on production domain.
-
-✅ At the end of this plan, you’ll have:
-
-Kanji-based checklist with persistent user accounts.
-
-Progress counter.
-
-Public profile pages via slugs.
-
-Shareable images + QR codes.
-
-Secure RLS policies.
+If numbers don’t match, call select dashboard_snapshot(); in SQL editor and compare with what the UI shows—if SQL is right, the bug is in the client; if SQL is wrong, fix it in one place.
