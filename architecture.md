@@ -1,204 +1,215 @@
-architecture.md — Debug-Friendly (Supabase-first)
-The problem we’re solving
+# Architecture.md — Current System Architecture
 
-Multiple components (Checklist, Difficulty, Badges, Region tiles, Overall) each fetch/derive data separately → race conditions and stale state after toggles.
+## Current Implementation (v1.0)
 
-High-level solution
+The application currently uses a **direct component-to-database** architecture that prioritizes simplicity and functionality.
 
-Single Source of Truth: Supabase.
+### 🏗️ **CURRENT ARCHITECTURE**
 
-Single Snapshot: fetch one “dashboard snapshot” that already contains everything the UI needs.
+#### **Data Flow Pattern**
+```
+User Action → Component → Hook → Supabase → UI Update
+```
 
-Atomic Mutation: toggling a mountain updates DB and returns a fresh snapshot in the same transaction.
+#### **Component Structure**
+```
+Dashboard Page (Client Component)
+├── useMountainCompletions (Custom Hook)
+│   ├── Direct Supabase queries
+│   ├── toggleMountain() - marks mountain as completed/uncompleted
+│   ├── setCompletionDate() - sets optional hiking date
+│   └── getCompletionData() - retrieves completion details
+├── ProgressCounter - displays X/100 progress
+├── DifficultyBreakdown - shows progress by difficulty level
+├── BadgeDisplay - achievement system
+├── MountainDateDisplay - optional date picker
+└── Mountain Cards - grouped by region, clickable
+```
 
-One Store: a client provider keeps the latest snapshot in memory; all components read from it (no component does its own fetch/derive).
+### 🗄️ **DATABASE SCHEMA**
 
-Data contracts (server)
+#### **Core Tables**
+```sql
+-- User profiles
+users (
+  id UUID PRIMARY KEY DEFAULT auth.uid(),
+  username TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  locale TEXT DEFAULT 'en',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+)
 
-We will create two RPCs that rely on auth.uid() (no user id spoofing):
+-- Mountain data
+mountains (
+  id TEXT PRIMARY KEY,
+  name_ja TEXT NOT NULL,
+  name_en TEXT NOT NULL,
+  name_zh TEXT NOT NULL,
+  region TEXT NOT NULL,
+  prefecture TEXT NOT NULL,
+  elevation_m INTEGER NOT NULL,
+  difficulty TEXT, -- ★ to ★★★★
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+)
 
-dashboard_snapshot() → returns a JSONB snapshot:
+-- User completions
+user_mountains (
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  mountain_id TEXT REFERENCES mountains(id) ON DELETE CASCADE,
+  completed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  hiked_on DATE NULL, -- Optional hiking date
+  source TEXT DEFAULT 'manual',
+  PRIMARY KEY (user_id, mountain_id)
+)
+```
 
--- 1) Create helper: difficulty as int
-create or replace view v_mountains as
-select
-  m.*,
-  length(coalesce(m.difficulty, ''))::int as difficulty_int
-from mountains m;
+#### **Security & Performance**
+- **Row Level Security (RLS)** enabled on all tables
+- **Indexes** on frequently queried columns
+- **Foreign key constraints** for data integrity
+- **Auth policies** ensure users only access their own data
 
--- 2) The snapshot for the currently authenticated user
-create or replace function dashboard_snapshot()
-returns jsonb
-language plpgsql
-security definer
-stable
-as $$
-declare
-  uid uuid := auth.uid();
-  _total int;
-  _completed int;
-  _completed_ids jsonb;
-  _by_region jsonb;
-  _by_difficulty jsonb;
-  _badges jsonb;
-begin
-  select count(*) into _total from mountains;
+### 🔧 **CURRENT DATA MANAGEMENT**
 
-  select count(*) into _completed
-  from user_mountains um
-  where um.user_id = uid;
+#### **Custom Hooks**
+```typescript
+// useMountainCompletions.ts
+- Manages mountain completion state
+- Handles toggle operations (complete/uncomplete)
+- Manages optional hiking dates
+- Provides completion data to components
 
-  select coalesce(jsonb_agg(um.mountain_id), '[]'::jsonb) into _completed_ids
-  from user_mountains um
-  where um.user_id = uid;
+// useAuth.ts  
+- Manages authentication state
+- Handles sign in/out operations
+- Provides user context
 
-  select coalesce(jsonb_agg(jsonb_build_object(
-           'region', r.region,
-           'total', r.total,
-           'completed', coalesce(p.completed, 0)
-         )), '[]'::jsonb)
-  into _by_region
-  from (
-    select region, count(*)::int as total
-    from mountains
-    group by region
-  ) r
-  left join (
-    select m.region, count(*)::int as completed
-    from user_mountains um
-    join mountains m on m.id = um.mountain_id
-    where um.user_id = uid
-    group by m.region
-  ) p on p.region = r.region
-  order by r.region;
+// useToast.tsx
+- Toast notification system
+- Success/error feedback
+- Auto-dismiss functionality
+```
 
-  select coalesce(jsonb_agg(jsonb_build_object(
-           'level', d.difficulty_int,
-           'total', d.total,
-           'completed', coalesce(c.completed, 0)
-         )), '[]'::jsonb)
-  into _by_difficulty
-  from (
-    select difficulty_int, count(*)::int as total
-    from v_mountains
-    group by difficulty_int
-  ) d
-  left join (
-    select vm.difficulty_int, count(*)::int as completed
-    from user_mountains um
-    join v_mountains vm on vm.id = um.mountain_id
-    where um.user_id = uid
-    group by vm.difficulty_int
-  ) c on c.difficulty_int = d.difficulty_int
-  order by d.difficulty_int;
+#### **Data Fetching Pattern**
+```typescript
+// Direct Supabase queries in hooks
+const { data, error } = await supabase
+  .from('user_mountains')
+  .select('mountain_id, completed_at, hiked_on')
+  .eq('user_id', user.id);
 
-  -- Simple badge logic; keep server-side for determinism
-  _badges := '[]'::jsonb;
-  if _completed >= 1  then _badges := _badges || jsonb_build_object('key','first_step'); end if;
-  if _completed >= 10 then _badges := _badges || jsonb_build_object('key','ten_done');  end if;
-  if _completed >= 50 then _badges := _badges || jsonb_build_object('key','half_way');  end if;
-  if exists (
-    select 1
-    from user_mountains um
-    join v_mountains vm on vm.id = um.mountain_id
-    where um.user_id = uid and vm.difficulty_int = 5
-  ) then _badges := _badges || jsonb_build_object('key','five_star_climber'); end if;
+// Optimistic updates for better UX
+setCompletedIds(prev => [...prev, mountainId]);
+// Then sync with server
+```
 
-  return jsonb_build_object(
-    'total', _total,
-    'completed', _completed,
-    'completed_ids', _completed_ids,
-    'by_region', _by_region,
-    'by_difficulty', _by_difficulty,
-    'badges', _badges
-  );
-end $$;
+### 🌐 **INTERNATIONALIZATION (i18n)**
 
-grant execute on function dashboard_snapshot() to anon, authenticated;
+#### **Language Support**
+- **English** (en) - Default
+- **Japanese** (ja) - 日本語  
+- **Chinese** (zh) - 中文
 
-
-toggle_completion(mountain_id uuid/text, mark boolean) → writes and returns a fresh snapshot:
-
-create or replace function toggle_completion(p_mountain_id text, p_mark boolean)
-returns jsonb
-language plpgsql
-security definer
-volatile
-as $$
-declare
-  uid uuid := auth.uid();
-begin
-  if p_mark then
-    insert into user_mountains(user_id, mountain_id, completed_at, source)
-    values (uid, p_mountain_id, now(), 'manual')
-    on conflict (user_id, mountain_id) do nothing;
-  else
-    delete from user_mountains
-    where user_id = uid and mountain_id = p_mountain_id;
-  end if;
-
-  -- Return the fresh, authoritative snapshot
-  return dashboard_snapshot();
-end $$;
-
-grant execute on function toggle_completion(text, boolean) to authenticated;
-
-
-Why this works: every UI render and every toggle uses the same aggregate, so Difficulty, Badges, RegionTiles, and Checklist cannot drift.
-
-Frontend data flow (Next.js App Router)
-[Server Component: dashboard/page.tsx]
-    └─ fetch snapshot (supabase.rpc('dashboard_snapshot'))
-    └─ <DashboardProvider initialSnapshot=...>  (client)
-          ├─ <ProgressOverview/>  reads from context
-          │     ├─ <DifficultyBreakdown/>
-          │     └─ <BadgeDisplay/>
-          ├─ <TwoPane>
-          │     ├─ <ChecklistSidebar onToggle=actions.toggle/>
-          │     └─ <RegionTiles/>
-          └─ <FooterProgress/>
-
-Client store (Context)
-
-Holds the current snapshot.
-
-Actions:
-
-toggle(mountainId, mark) → calls toggle_completion RPC → replace snapshot in store.
-
-TypeScript contract for the snapshot
-export type RegionStat = { region: string; total: number; completed: number };
-export type DifficultyStat = { level: number | null; total: number; completed: number };
-
-export type DashboardSnapshot = {
-  total: number;
-  completed: number;
-  completed_ids: string[];         // mountain ids
-  by_region: RegionStat[];
-  by_difficulty: DifficultyStat[]; // levels 0..5; null if missing
-  badges: { key: 'first_step'|'ten_done'|'half_way'|'five_star_climber' }[];
-};
-
-Minimal client utilities
-// lib/supabase/api.ts
-export async function getSnapshot(supabase: SupabaseClient) {
-  const { data, error } = await supabase.rpc('dashboard_snapshot');
-  if (error) throw error;
-  return data as DashboardSnapshot;
+#### **Translation Structure**
+```json
+// src/lib/i18n/messages/[locale].json
+{
+  "title": "Japan's 100 Famous Mountains Tracker",
+  "progressByDifficulty": "Progress by Difficulty",
+  "achievements": "Achievements",
+  "regions": {
+    "北海道": "Hokkaido",
+    "関東": "Kanto",
+    // ... all regions
+  },
+  "badges": {
+    "firstStep": { "title": "First Step", "description": "..." }
+  }
 }
+```
 
-export async function toggleAndGetSnapshot(supabase: SupabaseClient, id: string, mark: boolean) {
-  const { data, error } = await supabase.rpc('toggle_completion', { p_mountain_id: id, p_mark: mark });
-  if (error) throw error;
-  return data as DashboardSnapshot;
-}
+#### **Component Integration**
+```typescript
+// All components use useTranslations()
+const t = useTranslations();
+return <h1>{t('title')}</h1>;
+```
 
-Debug-first design choices
+### 🎨 **USER INTERFACE ARCHITECTURE**
 
-One fetch / one mutation contract → eliminates cross-component drift.
+#### **Component Hierarchy**
+```
+Dashboard Page
+├── Header (Title + Language Switcher + Auth)
+├── Progress Section
+│   ├── ProgressCounter (X/100)
+│   ├── DifficultyBreakdown (★ bars)
+│   └── BadgeDisplay (Achievements)
+├── Mountains Section
+│   └── Region Groups
+│       └── Mountain Cards
+│           ├── MountainName
+│           └── MountainDateDisplay (if completed)
+└── Footer (Instructions)
+```
 
-Server computes difficulty/region/badges → deterministic, testable in SQL.
+#### **Styling System**
+- **Tailwind CSS** for utility-first styling
+- **Responsive design** with mobile-first approach
+- **Custom CSS** for mountain card animations
+- **Color system** for completion states
 
-Context replaces snapshot wholesale after each toggle → no partial merges.
+### 🔄 **STATE MANAGEMENT**
 
-Logging hooks (feature flag) print: RPC inputs, RPC duration, and snapshot’s completed count.
+#### **Current Approach**
+- **React Hooks** for local state
+- **Custom hooks** for shared logic
+- **Context** for global state (auth, toasts)
+- **Direct Supabase** for data persistence
+
+#### **State Flow**
+```
+User Action → Hook → Supabase Query → State Update → UI Re-render
+```
+
+### 🚀 **DEPLOYMENT & PERFORMANCE**
+
+#### **Build System**
+- **Next.js 14** with App Router
+- **TypeScript** for type safety
+- **ESLint** for code quality
+- **Tailwind CSS** for styling
+
+#### **Performance Optimizations**
+- **Database indexes** on frequently queried columns
+- **Optimistic updates** for better UX
+- **Client-side caching** via React state
+- **Lazy loading** for non-critical components
+
+### 🔮 **FUTURE ARCHITECTURE CONSIDERATIONS**
+
+#### **Potential Improvements**
+1. **Snapshot Pattern**: Centralized data fetching via RPCs
+2. **Server Components**: Move data fetching to server-side
+3. **Caching Layer**: Redis for frequently accessed data
+4. **Real-time Updates**: WebSocket connections for live updates
+
+#### **Scalability Considerations**
+- **Database partitioning** by user_id for large datasets
+- **CDN integration** for static assets
+- **Edge functions** for global performance
+- **Database connection pooling** for high concurrency
+
+### 📊 **MONITORING & DEBUGGING**
+
+#### **Current Debugging**
+- **Console logging** in development
+- **Supabase dashboard** for query monitoring
+- **Browser dev tools** for performance analysis
+- **Error boundaries** for graceful error handling
+
+#### **Production Monitoring**
+- **Vercel Analytics** for performance metrics
+- **Supabase logs** for database performance
+- **Error tracking** via toast notifications
+- **User feedback** through completion tracking
