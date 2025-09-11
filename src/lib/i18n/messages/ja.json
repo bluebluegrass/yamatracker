@@ -13,5 +13,38 @@
   "dateSetToToday": "今日の日付が設定されました。編集できます。",
   "dateInvalidFuture": "未来の日付は設定できません",
   "dateSaved": "日付が保存されました",
-  "dateCleared": "日付がクリアされました"
+  "dateCleared": "日付がクリアされました",
+  "progressByDifficulty": "難易度別進捗",
+  "achievements": "実績",
+  "earned": "獲得済み",
+  "locked": "未獲得",
+  "completeMountainsToEarn": "山を登って実績を獲得しましょう！",
+  "badges": {
+    "firstStep": {
+      "title": "第一歩",
+      "description": "最初の山を登る"
+    },
+    "tenDone": {
+      "title": "10山達成",
+      "description": "10の山を登る"
+    },
+    "halfWay": {
+      "title": "半分達成",
+      "description": "50の山を登る"
+    },
+    "fiveStarClimber": {
+      "title": "5星登山者",
+      "description": "5星の山を登る"
+    }
+  },
+  "regions": {
+    "北海道": "北海道",
+    "東北": "東北",
+    "関東": "関東",
+    "中部": "中部",
+    "関西": "関西",
+    "中国": "中国",
+    "四国": "四国",
+    "九州": "九州"
+  }
 }

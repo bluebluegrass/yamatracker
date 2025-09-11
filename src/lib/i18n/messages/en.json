@@ -13,5 +13,38 @@
   "dateSetToToday": "Date set to today. You can edit it.",
   "dateInvalidFuture": "Date can't be in the future",
   "dateSaved": "Date saved successfully",
-  "dateCleared": "Date cleared"
+  "dateCleared": "Date cleared",
+  "progressByDifficulty": "Progress by Difficulty",
+  "achievements": "Achievements",
+  "earned": "Earned",
+  "locked": "Locked",
+  "completeMountainsToEarn": "Complete mountains to earn achievements!",
+  "badges": {
+    "firstStep": {
+      "title": "First Step",
+      "description": "Complete your first mountain"
+    },
+    "tenDone": {
+      "title": "Ten Done",
+      "description": "Complete 10 mountains"
+    },
+    "halfWay": {
+      "title": "Half Way",
+      "description": "Complete 50 mountains"
+    },
+    "fiveStarClimber": {
+      "title": "Five Star Climber",
+      "description": "Complete a 5-star mountain"
+    }
+  },
+  "regions": {
+    "北海道": "Hokkaido",
+    "東北": "Tohoku",
+    "関東": "Kanto",
+    "中部": "Chubu",
+    "関西": "Kansai",
+    "中国": "Chugoku",
+    "四国": "Shikoku",
+    "九州": "Kyushu"
+  }
 }

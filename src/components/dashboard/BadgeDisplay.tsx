@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslations } from 'next-intl';
 
 interface BadgeDisplayProps {
   completedCount: number;
@@ -18,6 +19,8 @@ interface Badge {
 }
 
 export default function BadgeDisplay({ completedCount, completedIds, mountains }: BadgeDisplayProps) {
+  const t = useTranslations();
+  
   // Check if user has completed any 5-star mountain
   const hasFiveStarMountain = mountains.some(mountain => 
     mountain.difficulty === '★★★★' && completedIds.includes(mountain.id)
@@ -26,29 +29,29 @@ export default function BadgeDisplay({ completedCount, completedIds, mountains }
   const badges: Badge[] = [
     {
       key: 'first_step',
-      title: 'First Step',
-      description: 'Complete your first mountain',
+      title: t('badges.firstStep.title'),
+      description: t('badges.firstStep.description'),
       icon: '🏔️',
       condition: completedCount >= 1
     },
     {
       key: 'ten_done',
-      title: 'Ten Done',
-      description: 'Complete 10 mountains',
+      title: t('badges.tenDone.title'),
+      description: t('badges.tenDone.description'),
       icon: '🎯',
       condition: completedCount >= 10
     },
     {
       key: 'half_way',
-      title: 'Half Way',
-      description: 'Complete 50 mountains',
+      title: t('badges.halfWay.title'),
+      description: t('badges.halfWay.description'),
       icon: '🏆',
       condition: completedCount >= 50
     },
     {
       key: 'five_star_climber',
-      title: 'Five Star Climber',
-      description: 'Complete a 5-star mountain',
+      title: t('badges.fiveStarClimber.title'),
+      description: t('badges.fiveStarClimber.description'),
       icon: '⭐',
       condition: hasFiveStarMountain
     }
@@ -59,11 +62,11 @@ export default function BadgeDisplay({ completedCount, completedIds, mountains }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Achievements</h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('achievements')}</h3>
       
       {earnedBadges.length > 0 && (
         <div className="mb-4">
-          <h4 className="text-sm font-medium text-gray-600 mb-2">Earned</h4>
+          <h4 className="text-sm font-medium text-gray-600 mb-2">{t('earned')}</h4>
           <div className="grid grid-cols-2 gap-3">
             {earnedBadges.map((badge) => (
               <div
@@ -83,7 +86,7 @@ export default function BadgeDisplay({ completedCount, completedIds, mountains }
 
       {lockedBadges.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-gray-600 mb-2">Locked</h4>
+          <h4 className="text-sm font-medium text-gray-600 mb-2">{t('locked')}</h4>
           <div className="grid grid-cols-2 gap-3">
             {lockedBadges.map((badge) => (
               <div
@@ -103,7 +106,7 @@ export default function BadgeDisplay({ completedCount, completedIds, mountains }
 
       {earnedBadges.length === 0 && (
         <div className="text-center py-4">
-          <div className="text-gray-400 text-sm">Complete mountains to earn achievements!</div>
+          <div className="text-gray-400 text-sm">{t('completeMountainsToEarn')}</div>
         </div>
       )}
     </div>
