@@ -3,5 +3,15 @@
   "progress": "进度",
   "mountains": "山峰",
   "completed": "已完成",
-  "notCompleted": "未完成"
+  "notCompleted": "未完成",
+  "hikedOn": "登山日期",
+  "addDate": "添加日期",
+  "editDate": "编辑日期",
+  "dateNotSet": "未设置日期",
+  "save": "保存",
+  "clear": "清除",
+  "dateSetToToday": "日期已设置为今天。您可以编辑。",
+  "dateInvalidFuture": "不能设置未来日期",
+  "dateSaved": "日期保存成功",
+  "dateCleared": "日期已清除"
 }

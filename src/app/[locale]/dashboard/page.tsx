@@ -6,6 +6,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import MountainName from '@/components/dashboard/MountainName';
 import ProgressCounter from '@/components/dashboard/ProgressCounter';
+import DifficultyBreakdown from '@/components/dashboard/DifficultyBreakdown';
+import BadgeDisplay from '@/components/dashboard/BadgeDisplay';
+import MountainDateDisplay from '@/components/dashboard/MountainDateDisplay';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { ToastContainer } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,12 +25,13 @@ interface Mountain {
   region: string;
   prefecture: string;
   elevation_m: number;
+  difficulty: string;
 }
 
 export default function Dashboard() {
   const t = useTranslations();
   const { user, loading: authLoading } = useAuth();
-  const { completedIds, loading: mountainsLoading, toggleMountain } = useMountainCompletions();
+  const { completedIds, completionData, loading: mountainsLoading, toggleMountain, setCompletionDate, getCompletionData } = useMountainCompletions();
   const { toasts, removeToast, addToast } = useToast();
   const [userSlug, setUserSlug] = useState<string | null>(null);
   const [mountainsData, setMountainsData] = useState<Mountain[]>([]);
@@ -206,6 +210,19 @@ export default function Dashboard() {
           <ProgressCounter completedCount={completedCount} />
         </div>
 
+        {/* Dashboard Stats */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <DifficultyBreakdown 
+            mountains={mountainsData} 
+            completedIds={completedIds} 
+          />
+          <BadgeDisplay 
+            completedCount={completedCount}
+            completedIds={completedIds}
+            mountains={mountainsData}
+          />
+        </div>
+
         {/* Mountains List - Grouped by Region */}
         <div className="space-y-8">
           {regionOrder.map((region) => {
@@ -249,6 +266,15 @@ export default function Dashboard() {
                       />
                       <div className="text-sm text-gray-600 mt-1">{mountain.name_en}</div>
                       <div className="text-xs text-gray-500">{mountain.prefecture} • {mountain.elevation_m}m</div>
+                      <div className="text-xs text-gray-500 mt-1">{mountain.difficulty}</div>
+                      {completedIds.includes(mountain.id) && (
+                        <MountainDateDisplay
+                          mountainId={mountain.id}
+                          mountainName={mountain.name_en}
+                          hikedOn={getCompletionData(mountain.id)?.hiked_on || null}
+                          onDateChange={(date) => setCompletionDate(mountain.id, date)}
+                        />
+                      )}
                     </button>
                   ))}
                 </div>

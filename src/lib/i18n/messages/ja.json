@@ -3,5 +3,15 @@
   "progress": "進捗",
   "mountains": "山々",
   "completed": "完了",
-  "notCompleted": "未完了"
+  "notCompleted": "未完了",
+  "hikedOn": "登山日",
+  "addDate": "日付を追加",
+  "editDate": "日付を編集",
+  "dateNotSet": "日付未設定",
+  "save": "保存",
+  "clear": "クリア",
+  "dateSetToToday": "今日の日付が設定されました。編集できます。",
+  "dateInvalidFuture": "未来の日付は設定できません",
+  "dateSaved": "日付が保存されました",
+  "dateCleared": "日付がクリアされました"
 }

@@ -3,5 +3,15 @@
   "progress": "Progress",
   "mountains": "Mountains",
   "completed": "Completed",
-  "notCompleted": "Not Completed"
+  "notCompleted": "Not Completed",
+  "hikedOn": "Hiked on",
+  "addDate": "Add date",
+  "editDate": "Edit date",
+  "dateNotSet": "Date not set",
+  "save": "Save",
+  "clear": "Clear",
+  "dateSetToToday": "Date set to today. You can edit it.",
+  "dateInvalidFuture": "Date can't be in the future",
+  "dateSaved": "Date saved successfully",
+  "dateCleared": "Date cleared"
 }
