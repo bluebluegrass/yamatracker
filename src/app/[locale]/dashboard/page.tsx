@@ -171,18 +171,18 @@ export default function Dashboard() {
             <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Welcome, {user.email}</span>
+                <span className="text-sm text-gray-600">{t('welcome')}, {user.email}</span>
                 <Link
                   href={userSlug ? `/u/${userSlug}` : '#'}
                   className="text-sm text-indigo-600 hover:text-indigo-500"
                 >
-                  View Profile
+                  {t('viewProfile')}
                 </Link>
                 <button
                   onClick={() => window.location.href = '/login'}
                   className="text-sm text-indigo-600 hover:text-indigo-500"
                 >
-                  Sign Out
+                  {t('signOut')}
                 </button>
               </div>
             ) : (
@@ -191,13 +191,13 @@ export default function Dashboard() {
                   href="/login"
                   className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-500"
                 >
-                  Sign In
+                  {t('signIn')}
                 </Link>
                 <Link
                   href="/signup"
                   className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
                 >
-                  Sign Up
+                  {t('signUp')}
                 </Link>
               </div>
             )}
@@ -286,9 +286,9 @@ export default function Dashboard() {
         {/* Instructions */}
         <div className="mt-8 text-center text-gray-600">
           {user ? (
-            <p>Click on any mountain to mark it as completed! Your progress will be saved automatically.</p>
+            <p>{t('mountainInstructions')}</p>
           ) : (
-            <p>Sign up or sign in to save your mountain climbing progress!</p>
+            <p>{t('signUpPrompt')}</p>
           )}
         </div>
       </div>

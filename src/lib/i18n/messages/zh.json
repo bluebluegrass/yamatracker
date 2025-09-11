@@ -46,5 +46,12 @@
     "中国": "中国",
     "四国": "四国",
     "九州": "九州"
-  }
+  },
+  "welcome": "欢迎",
+  "viewProfile": "查看个人资料",
+  "signOut": "退出登录",
+  "signIn": "登录",
+  "signUp": "注册",
+  "mountainInstructions": "点击任何山峰将其标记为已完成！您的进度将自动保存。",
+  "signUpPrompt": "注册或登录以保存您的登山进度！"
 }
