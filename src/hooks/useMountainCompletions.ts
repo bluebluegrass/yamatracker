@@ -26,6 +26,12 @@ export function useMountainCompletions() {
 
         if (error) {
           console.error('Error loading completed mountains:', error);
+          console.error('Error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
         } else {
           setCompletedIds(data?.map(item => item.mountain_id) || []);
         }
@@ -58,7 +64,13 @@ export function useMountainCompletions() {
 
         if (error) {
           console.error('Error removing completion:', error);
-          addToast('Failed to remove mountain completion. Please try again.', 'error');
+          console.error('Error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          addToast(`Failed to remove mountain completion: ${error.message}`, 'error');
         } else {
           setCompletedIds(prev => prev.filter(id => id !== mountainId));
           addToast('Mountain marked as not completed', 'success', 3000);
@@ -74,7 +86,13 @@ export function useMountainCompletions() {
 
         if (error) {
           console.error('Error adding completion:', error);
-          addToast('Failed to mark mountain as completed. Please try again.', 'error');
+          console.error('Error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          addToast(`Failed to mark mountain as completed: ${error.message}`, 'error');
         } else {
           setCompletedIds(prev => [...prev, mountainId]);
           addToast('Mountain marked as completed!', 'success', 3000);
