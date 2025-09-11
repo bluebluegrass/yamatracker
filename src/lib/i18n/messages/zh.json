@@ -13,5 +13,38 @@
   "dateSetToToday": "日期已设置为今天。您可以编辑。",
   "dateInvalidFuture": "不能设置未来日期",
   "dateSaved": "日期保存成功",
-  "dateCleared": "日期已清除"
+  "dateCleared": "日期已清除",
+  "progressByDifficulty": "难度进度",
+  "achievements": "成就",
+  "earned": "已获得",
+  "locked": "未获得",
+  "completeMountainsToEarn": "攀登山峰来获得成就！",
+  "badges": {
+    "firstStep": {
+      "title": "第一步",
+      "description": "攀登第一座山峰"
+    },
+    "tenDone": {
+      "title": "十山完成",
+      "description": "攀登10座山峰"
+    },
+    "halfWay": {
+      "title": "半程达成",
+      "description": "攀登50座山峰"
+    },
+    "fiveStarClimber": {
+      "title": "五星登山者",
+      "description": "攀登一座五星山峰"
+    }
+  },
+  "regions": {
+    "北海道": "北海道",
+    "東北": "东北",
+    "関東": "关东",
+    "中部": "中部",
+    "関西": "关西",
+    "中国": "中国",
+    "四国": "四国",
+    "九州": "九州"
+  }
 }

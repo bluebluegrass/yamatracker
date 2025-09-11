@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslations } from 'next-intl';
 
 interface DifficultyBreakdownProps {
   mountains: Array<{
@@ -9,6 +10,8 @@ interface DifficultyBreakdownProps {
 }
 
 export default function DifficultyBreakdown({ mountains, completedIds }: DifficultyBreakdownProps) {
+  const t = useTranslations();
+  
   // Calculate difficulty statistics
   const difficultyStats = mountains.reduce((acc, mountain) => {
     const difficulty = mountain.difficulty || '★';
@@ -31,7 +34,7 @@ export default function DifficultyBreakdown({ mountains, completedIds }: Difficu
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Progress by Difficulty</h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('progressByDifficulty')}</h3>
       <div className="space-y-3">
         {difficultyOrder.map((difficulty) => {
           const stats = difficultyStats[difficulty];
