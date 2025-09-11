@@ -10,7 +10,6 @@ export default function MountainName({ nameJa, done }: MountainNameProps) {
       style={{
         color: done ? '#16a34a' : '#6b7280',
         fontWeight: done ? 'bold' : 'normal',
-        textDecoration: done ? 'line-through' : 'none',
         fontSize: '1.125rem',
         transition: 'all 0.2s ease'
       }}
