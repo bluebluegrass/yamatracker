@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import {useTranslations} from 'next-intl';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -11,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useMountainCompletions } from '@/hooks/useMountainCompletions';
 import { useToast } from '@/hooks/useToast';
 import { supabase } from '@/lib/supabase/client';
+// Remove JSON import - will fetch from Supabase instead
 
 interface Mountain {
   id: string;
@@ -25,15 +27,48 @@ interface Mountain {
 export default function Dashboard() {
   const t = useTranslations();
   const { user, loading: authLoading } = useAuth();
-  const { completedIds, loading: completionsLoading, toggleMountain } = useMountainCompletions();
+  const { completedIds, loading: mountainsLoading, toggleMountain } = useMountainCompletions();
   const { toasts, removeToast, addToast } = useToast();
   const [userSlug, setUserSlug] = useState<string | null>(null);
   const [mountainsData, setMountainsData] = useState<Mountain[]>([]);
-  const [mountainsLoading, setMountainsLoading] = useState(true);
+  const [mountainsDataLoading, setMountainsDataLoading] = useState(true);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   const completedCount = completedIds.length;
 
-  // Fetch mountains from Supabase
+  // Debug: Log authentication status
+  console.log('Dashboard: Client-side auth status:', { 
+    hasUser: !!user, 
+    userEmail: user?.email,
+    userId: user?.id,
+    authLoading 
+  });
+
+  // Group mountains by region
+  const groupedMountains = mountainsData.reduce((acc: Record<string, Mountain[]>, mountain: Mountain) => {
+    const region = mountain.region;
+    if (!acc[region]) {
+      acc[region] = [];
+    }
+    acc[region].push(mountain);
+    return acc;
+  }, {} as Record<string, Mountain[]>);
+
+  // Define region order for consistent display
+  const regionOrder = ['北海道', '東北', '関東', '中部', '関西', '中国', '四国', '九州'];
+
+  // Timeout fallback to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      console.log('Dashboard: Loading timeout reached, forcing load completion');
+      setMountainsDataLoading(false);
+      setLoadingTimeout(true);
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeout);
+  }, []);
+
+  // Fetch mountains data from Supabase
   useEffect(() => {
     const fetchMountains = async () => {
       try {
@@ -52,27 +87,14 @@ export default function Dashboard() {
         }
       } catch (err) {
         console.error('Error fetching mountains:', err);
-        addToast('Failed to load mountains data', 'error');
+        addToast('Network error loading mountains', 'error');
       } finally {
-        setMountainsLoading(false);
+        setMountainsDataLoading(false);
       }
     };
 
     fetchMountains();
   }, [addToast]);
-
-  // Group mountains by region
-  const groupedMountains = mountainsData.reduce((acc, mountain) => {
-    const region = mountain.region;
-    if (!acc[region]) {
-      acc[region] = [];
-    }
-    acc[region].push(mountain);
-    return acc;
-  }, {} as Record<string, Mountain[]>);
-
-  // Define region order for consistent display
-  const regionOrder = ['北海道', '東北', '関東', '中部', '関西', '中国', '四国', '九州'];
 
   // Fetch user slug when user is available
   useEffect(() => {
@@ -98,12 +120,34 @@ export default function Dashboard() {
   }, [user]);
 
 
-  // Show loading state while checking authentication and loading mountains
-  if (authLoading || completionsLoading || mountainsLoading) {
+  // Debug: Log loading states
+  console.log('Dashboard: Loading states:', { 
+    authLoading, 
+    mountainsLoading, 
+    mountainsDataLoading,
+    mountainsDataLength: mountainsData.length,
+    completedIdsLength: completedIds.length
+  });
+
+  // Show loading state while checking authentication or loading mountains
+  if ((authLoading || mountainsLoading || mountainsDataLoading) && !loadingTimeout) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-lg">Loading...</div>
+          {loadingTimeout && <div className="text-sm text-gray-500 mt-2">Loading timeout - showing partial data</div>}
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if no mountains data and not loading
+  if (!mountainsDataLoading && mountainsData.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg text-red-600">Failed to load mountains data</div>
+          <div className="text-sm text-gray-500 mt-2">Please check your connection and try again</div>
         </div>
       </div>
     );
