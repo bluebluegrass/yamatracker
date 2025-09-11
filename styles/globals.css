@@ -35,7 +35,6 @@ body {
 .mountain-name.completed {
   color: #16a34a;
   font-weight: bold;
-  text-decoration: line-through;
 }
 
 .mountain-name.not-completed {
