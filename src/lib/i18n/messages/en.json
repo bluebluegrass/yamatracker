@@ -46,5 +46,12 @@
     "中国": "Chugoku",
     "四国": "Shikoku",
     "九州": "Kyushu"
-  }
+  },
+  "welcome": "Welcome",
+  "viewProfile": "View Profile",
+  "signOut": "Sign Out",
+  "signIn": "Sign In",
+  "signUp": "Sign Up",
+  "mountainInstructions": "Click on any mountain to mark it as completed! Your progress will be saved automatically.",
+  "signUpPrompt": "Sign up or sign in to save your mountain climbing progress!"
 }
