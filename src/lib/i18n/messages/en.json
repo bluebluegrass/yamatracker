@@ -54,4 +54,18 @@
   "signUp": "Sign Up",
   "mountainInstructions": "Click on any mountain to mark it as completed! Your progress will be saved automatically.",
   "signUpPrompt": "Sign up or sign in to save your mountain climbing progress!"
+  ,
+  "chat": {
+    "title": "Mountain Guide",
+    "region": "Region",
+    "difficulty": "Difficulty",
+    "season": "Season",
+    "clear": "Clear",
+    "send": "Send",
+    "askPlaceholder": "Ask for a recommendation…",
+    "open": "Ask the Mountain Guide",
+    "close": "Close Guide",
+    "typing": "Thinking…",
+    "noResults": "No suitable mountains found. Please try different filters."
+  }
 }

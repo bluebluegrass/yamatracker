@@ -10,6 +10,8 @@ import DifficultyBreakdown from '@/components/dashboard/DifficultyBreakdown';
 import BadgeDisplay from '@/components/dashboard/BadgeDisplay';
 import MountainDateDisplay from '@/components/dashboard/MountainDateDisplay';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import MountainGuideChat from '@/components/chat/MountainGuideChat';
+import { useLocale } from 'next-intl';
 import { ToastContainer } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useMountainCompletions } from '@/hooks/useMountainCompletions';
@@ -30,6 +32,8 @@ interface Mountain {
 
 export default function Dashboard() {
   const t = useTranslations();
+  const currentLocale = (typeof useLocale === 'function' ? useLocale() : 'en') as string;
+  const locale = (currentLocale === 'ja' || currentLocale === 'zh') ? currentLocale : 'en';
   const { user, loading: authLoading } = useAuth();
   const { completedIds, completionData, loading: mountainsLoading, toggleMountain, setCompletionDate, getCompletionData } = useMountainCompletions();
   const { toasts, removeToast, addToast } = useToast();
@@ -37,6 +41,7 @@ export default function Dashboard() {
   const [mountainsData, setMountainsData] = useState<Mountain[]>([]);
   const [mountainsDataLoading, setMountainsDataLoading] = useState(true);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   const completedCount = completedIds.length;
 
@@ -292,7 +297,28 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-      
+      {/* Floating Mountain Guide launcher and panel */}
+      <button
+        onClick={() => setShowGuide(s => !s)}
+        className="fixed bottom-6 right-6 rounded-full shadow-lg bg-indigo-600 text-white px-5 py-3 hover:bg-indigo-700"
+        aria-expanded={showGuide}
+        aria-controls="mountain-guide-panel"
+      >
+        {showGuide ? t('chat.close') : t('chat.open')}
+      </button>
+
+      <div
+        id="mountain-guide-panel"
+        className={`fixed bottom-24 right-6 w-[360px] h-[520px] z-50 ${showGuide ? '' : 'hidden'}`}
+      >
+        <MountainGuideChat
+          locale={locale as 'en' | 'ja' | 'zh'}
+          completedIds={completedIds}
+          mountains={mountainsData as any}
+          onClose={() => setShowGuide(false)}
+        />
+      </div>
+
       {/* Toast Container */}
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
     </div>
