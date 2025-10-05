@@ -36,24 +36,17 @@ Acceptance
 T03 — Public Profile Access Path (RLS-safe)
 
 Do checklist
-
- Add view/RPC to read profile by slug.
-
- Return only: slug, display_name, avatar_url, created_at (+ is_public gate if present).
-
- Allow anonymous role to read this path only.
-
- Ensure private columns remain blocked under RLS.
+- [x] Add view/RPC to read profile by slug.
+- [x] Return only: slug, display_name, avatar_url, created_at (+ is_public gate if present).
+- [x] Allow anonymous role to read this path only.
+- [x] Ensure private columns remain blocked under RLS.
 
 Testing checklist
-
- Logged-out request by slug returns only allowed fields.
-
- Direct table scans of private columns are denied.
+- [x] Logged-out request by slug returns only allowed fields.
+- [x] Direct table scans of private columns are denied.
 
 Acceptance
-
- Public, RLS-safe profile read works as specified.
+- [x] Public, RLS-safe profile read works as specified.
 
 T04 — Aggregation Source of Truth (auth views + public RPCs)
 
