@@ -4,8 +4,12 @@ import { DashboardSnapshot } from '@/types/dashboard';
 /**
  * Fetch the complete dashboard snapshot for the authenticated user
  */
-export async function getSnapshot(supabase: SupabaseClient): Promise<DashboardSnapshot> {
-  const { data, error } = await supabase.rpc('dashboard_snapshot');
+export async function getSnapshot(
+  supabase: SupabaseClient,
+  options: { userId?: string } = {}
+): Promise<DashboardSnapshot> {
+  const params = options.userId ? { p_user_id: options.userId } : undefined;
+  const { data, error } = await supabase.rpc('dashboard_snapshot', params);
   if (error) throw error;
   return data as DashboardSnapshot;
 }

@@ -46,12 +46,6 @@ export default function Dashboard() {
   const completedCount = completedIds.length;
 
   // Debug: Log authentication status
-  console.log('Dashboard: Client-side auth status:', { 
-    hasUser: !!user, 
-    userEmail: user?.email,
-    userId: user?.id,
-    authLoading 
-  });
 
   // Group mountains by region
   const groupedMountains = mountainsData.reduce((acc: Record<string, Mountain[]>, mountain: Mountain) => {
@@ -69,7 +63,6 @@ export default function Dashboard() {
   // Timeout fallback to prevent infinite loading
   useEffect(() => {
     const timeout = setTimeout(() => {
-      console.log('Dashboard: Loading timeout reached, forcing load completion');
       setMountainsDataLoading(false);
       setLoadingTimeout(true);
     }, 10000); // 10 second timeout
@@ -81,7 +74,6 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchMountains = async () => {
       try {
-        console.log('Fetching mountains from Supabase...');
         const { data, error } = await supabase
           .from('mountains')
           .select('*')
@@ -89,14 +81,13 @@ export default function Dashboard() {
 
         if (error) {
           console.error('Error fetching mountains:', error);
-          addToast('Failed to load mountains data', 'error');
+          addToast('Failed to load mountains data', 'error', 3000);
         } else {
-          console.log('Mountains data loaded:', data?.length, 'mountains');
           setMountainsData(data || []);
         }
       } catch (err) {
         console.error('Error fetching mountains:', err);
-        addToast('Network error loading mountains', 'error');
+  addToast('Network error loading mountains', 'error', 3000);
       } finally {
         setMountainsDataLoading(false);
       }
@@ -130,13 +121,6 @@ export default function Dashboard() {
 
 
   // Debug: Log loading states
-  console.log('Dashboard: Loading states:', { 
-    authLoading, 
-    mountainsLoading, 
-    mountainsDataLoading,
-    mountainsDataLength: mountainsData.length,
-    completedIdsLength: completedIds.length
-  });
 
   // Show loading state while checking authentication or loading mountains
   if ((authLoading || mountainsLoading || mountainsDataLoading) && !loadingTimeout) {

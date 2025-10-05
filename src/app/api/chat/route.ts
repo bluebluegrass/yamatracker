@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
+import { handleApiError } from '@/lib/utils/apiError';
 
 // Lightweight types (kept local to the route to avoid cross-file churn)
 type ChatMessage = { role: 'user' | 'assistant' | 'system'; content: string };
@@ -420,50 +421,41 @@ function validatePreferences(x: unknown): Preferences | undefined {
 // POST /api/chat — scaffold only (no OpenAI call yet)
 export async function POST(request: NextRequest) {
   const started = Date.now();
-  // Server-only env guard
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    logEvent({ status: 'error:no_api_key', ip: getClientIp(request), duration_ms: Date.now() - started });
-    return NextResponse.json(
-      { success: false, error: 'Server missing OPENAI_API_KEY' },
-      { status: 500 }
-    );
-  }
-
-  // Parse body (no validation yet — added in next step)
-  let body: unknown = null;
   try {
-    body = await request.json();
-  } catch {
-    // Ignore parse errors; respond with 400 below
-  }
+    // Server-only env guard
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      logEvent({ status: 'error:no_api_key', ip: getClientIp(request), duration_ms: Date.now() - started });
+      return handleApiError('Server missing OPENAI_API_KEY', 500);
+    }
 
-  // Input validation (minimal, dependency-free)
-  const locale = isLocale((body as any)?.locale) ? (body as any).locale : 'en';
-  const messages = validateMessages((body as any)?.messages);
-  if (!messages) {
-    logEvent({ status: 'error:invalid_messages', ip: getClientIp(request), duration_ms: Date.now() - started });
-    return NextResponse.json(
-      { success: false, error: 'Invalid messages' },
-      { status: 400 }
-    );
-  }
-  const completed_ids = validateArrayOfStrings((body as any)?.completed_ids, 200, 32) ?? [];
-  const preferences = validatePreferences((body as any)?.preferences);
+    // Parse body (no validation yet — added in next step)
+    let body: unknown = null;
+    try {
+      body = await request.json();
+    } catch {
+      // Ignore parse errors; respond with 400 below
+    }
 
-  // Rate limiting (per IP for MVP)
-  const ip = getClientIp(request);
-  const rl = rateLimitCheck(`ip:${ip}`);
-  if (!rl.allowed) {
-    logEvent({ status: 'error:rate_limited', ip, locale, completed_ids_length: completed_ids.length, duration_ms: Date.now() - started });
-    return NextResponse.json(
-      { success: false, error: 'Rate limit exceeded. Please try again shortly.' },
-      { status: 429, headers: { 'Retry-After': Math.ceil(rl.resetMs / 1000).toString() } }
-    );
-  }
+    // Input validation (minimal, dependency-free)
+    const locale = isLocale((body as any)?.locale) ? (body as any).locale : 'en';
+    const messages = validateMessages((body as any)?.messages);
+    if (!messages) {
+      logEvent({ status: 'error:invalid_messages', ip: getClientIp(request), duration_ms: Date.now() - started });
+      return handleApiError('Invalid messages', 400);
+    }
+    const completed_ids = validateArrayOfStrings((body as any)?.completed_ids, 200, 32) ?? [];
+    const preferences = validatePreferences((body as any)?.preferences);
 
-  // Build bounded candidate pool from Supabase
-  try {
+    // Rate limiting (per IP for MVP)
+    const ip = getClientIp(request);
+    const rl = rateLimitCheck(`ip:${ip}`);
+    if (!rl.allowed) {
+      logEvent({ status: 'error:rate_limited', ip, locale, completed_ids_length: completed_ids.length, duration_ms: Date.now() - started });
+      return handleApiError('Rate limit exceeded. Please try again shortly.', 429, { 'Retry-After': Math.ceil(rl.resetMs / 1000).toString() });
+    }
+
+    // Build bounded candidate pool from Supabase
     const lastUserMsg = messages.filter(m => m.role === 'user').slice(-1)[0]?.content || '';
     const inferred = inferHeuristicsFromText(lastUserMsg);
     const candidates = await getCandidates(completed_ids, preferences, 20, lastUserMsg, inferred);
@@ -475,24 +467,15 @@ export async function POST(request: NextRequest) {
     try {
       model_raw = await callOpenAIJSON([...systemMsgs, ...userMsg], apiKey);
     } catch (err) {
-      // Surface a controlled error but do not fail the entire endpoint if model call fails
       logEvent({ status: 'error:model_call', ip, locale, completed_ids_length: completed_ids.length, candidates_count: candidates.length, duration_ms: Date.now() - started, error: err instanceof Error ? err.message : 'unknown' });
-      return NextResponse.json({
-        success: false,
-        error: 'Model call failed',
-        details: err instanceof Error ? err.message : 'unknown',
-      }, { status: 502 });
+      return handleApiError('Model call failed', 502, err instanceof Error ? err.message : 'unknown');
     }
 
     // Parse and validate model output
     const parsed = model_raw ? safeParseModel(model_raw) : null;
     if (!parsed) {
       logEvent({ status: 'error:invalid_model_output', ip, locale, completed_ids_length: completed_ids.length, candidates_count: candidates.length, duration_ms: Date.now() - started });
-      return NextResponse.json({
-        success: false,
-        error: 'Invalid model output',
-        model_raw,
-      }, { status: 502 });
+      return handleApiError('Invalid model output', 502, model_raw);
     }
 
     // Validate suggestions: map unknown IDs by matching names across locales, then filter to candidate set
@@ -525,9 +508,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (e) {
     logEvent({ status: 'error:candidates', ip: getClientIp(request), duration_ms: Date.now() - started, error: e instanceof Error ? e.message : 'unknown' });
-    return NextResponse.json(
-      { success: false, error: 'Failed to load candidates' },
-      { status: 500 }
-    );
+    return handleApiError('Failed to load candidates', 500, e instanceof Error ? e.message : 'unknown');
   }
 }

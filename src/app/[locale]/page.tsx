@@ -9,14 +9,7 @@ export default function Home() {
   const t = useTranslations();
   const router = useRouter();
 
-  useEffect(() => {
-    // Redirect to dashboard after a short delay
-    const timer = setTimeout(() => {
-      router.push('/dashboard');
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [router]);
+  // Removed auto-redirect. Manual navigation below.
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -51,8 +44,13 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="text-sm text-gray-500">
-          Redirecting to dashboard in a moment...
+        <div className="mt-6">
+          <button
+            className="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors font-medium"
+            onClick={() => router.push('/dashboard')}
+          >
+            Go to Dashboard
+          </button>
         </div>
 
         {/* Language switcher */}

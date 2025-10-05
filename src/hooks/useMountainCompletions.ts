@@ -4,6 +4,7 @@ import { useAuth } from './useAuth';
 import { useToast } from './useToast';
 import { MountainCompletion } from '@/types/mountain';
 import { getTodayDateString, isFutureDate } from '@/lib/date';
+import { handleHookError } from './handleHookError';
 
 export function useMountainCompletions() {
   const { user } = useAuth();
@@ -28,17 +29,10 @@ export function useMountainCompletions() {
           .eq('user_id', user.id);
 
         if (error) {
-          console.error('Error loading completed mountains:', error);
-          console.error('Error details:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code
-          });
+          handleHookError(error, addToast, 'Failed to load completed mountains');
         } else {
           const ids = data?.map(item => item.mountain_id) || [];
           const completionMap: Record<string, MountainCompletion> = {};
-          
           data?.forEach(item => {
             completionMap[item.mountain_id] = {
               mountain_id: item.mountain_id,
@@ -46,12 +40,11 @@ export function useMountainCompletions() {
               hiked_on: item.hiked_on
             };
           });
-          
           setCompletedIds(ids);
           setCompletionData(completionMap);
         }
       } catch (err) {
-        console.error('Error loading completed mountains:', err);
+        handleHookError(err, addToast, 'Failed to load completed mountains');
       } finally {
         setLoading(false);
       }
@@ -78,14 +71,7 @@ export function useMountainCompletions() {
           .eq('mountain_id', mountainId);
 
         if (error) {
-          console.error('Error removing completion:', error);
-          console.error('Error details:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code
-          });
-          addToast(`Failed to remove mountain completion: ${error.message}`, 'error');
+          handleHookError(error, addToast, 'Failed to remove mountain completion');
         } else {
           setCompletedIds(prev => prev.filter(id => id !== mountainId));
           setCompletionData(prev => {
@@ -107,14 +93,7 @@ export function useMountainCompletions() {
           });
 
         if (error) {
-          console.error('Error adding completion:', error);
-          console.error('Error details:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code
-          });
-          addToast(`Failed to mark mountain as completed: ${error.message}`, 'error');
+          handleHookError(error, addToast, 'Failed to mark mountain as completed');
         } else {
           setCompletedIds(prev => [...prev, mountainId]);
           setCompletionData(prev => ({
@@ -129,8 +108,7 @@ export function useMountainCompletions() {
         }
       }
     } catch (err) {
-      console.error('Error toggling mountain completion:', err);
-      addToast('Network error. Please check your connection and try again.', 'error');
+      handleHookError(err, addToast, 'Network error. Please check your connection and try again.');
     }
   };
 
@@ -155,8 +133,7 @@ export function useMountainCompletions() {
         .eq('mountain_id', mountainId);
 
       if (error) {
-        console.error('Error updating completion date:', error);
-        addToast('Could not save date.', 'error');
+        handleHookError(error, addToast, 'Could not save date.');
       } else {
         setCompletionData(prev => ({
           ...prev,
@@ -168,8 +145,7 @@ export function useMountainCompletions() {
         addToast(date ? 'Date saved successfully' : 'Date cleared', 'success', 2000);
       }
     } catch (err) {
-      console.error('Error updating completion date:', err);
-      addToast('Network error. Please try again.', 'error');
+      handleHookError(err, addToast, 'Network error. Please try again.');
     }
   };
 

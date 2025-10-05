@@ -1,15 +1,7 @@
--- Database Views and RPCs for Hyakumeizan Tracker
--- Run this SQL in your Supabase SQL Editor
+-- Migration: Add altitude bucket view and extend dashboard snapshot
+-- Description: Provides altitude aggregates for mountains and returns them in the snapshot payload.
 
--- 1) Create helper: difficulty as int
-create or replace view v_mountains as
-select
-  m.*,
-  length(coalesce(m.difficulty, ''))::int as difficulty_int
-from mountains m;
-
--- 1b) Altitude buckets for mountains
-create or replace view v_altitude_buckets as
+create or replace view public.v_altitude_buckets as
 with buckets as (
   select * from (values
     ('lt_1000', '<1,000 m', null::integer, 1000),
@@ -25,14 +17,13 @@ select
   b.max_elevation_m,
   count(m.id)::int as total
 from buckets b
-left join mountains m
+left join public.mountains m
   on (b.min_elevation_m is null or m.elevation_m >= b.min_elevation_m)
  and (b.max_elevation_m is null or m.elevation_m < b.max_elevation_m)
 group by b.bucket_id, b.bucket_label, b.min_elevation_m, b.max_elevation_m
 order by b.min_elevation_m nulls first;
 
--- 2) The snapshot for the currently authenticated user
-create or replace function dashboard_snapshot(p_user_id uuid default null)
+create or replace function public.dashboard_snapshot(p_user_id uuid default null)
 returns jsonb
 language plpgsql
 security definer
@@ -48,14 +39,14 @@ declare
   _by_altitude jsonb;
   _badges jsonb;
 begin
-  select count(*) into _total from mountains;
+  select count(*) into _total from public.mountains;
 
   select count(*) into _completed
-  from user_mountains um
+  from public.user_mountains um
   where um.user_id = uid;
 
   select coalesce(jsonb_agg(um.mountain_id), '[]'::jsonb) into _completed_ids
-  from user_mountains um
+  from public.user_mountains um
   where um.user_id = uid;
 
   select coalesce(jsonb_agg(jsonb_build_object(
@@ -66,13 +57,13 @@ begin
   into _by_region
   from (
     select region, count(*)::int as total
-    from mountains
+    from public.mountains
     group by region
   ) r
   left join (
     select m.region, count(*)::int as completed
-    from user_mountains um
-    join mountains m on m.id = um.mountain_id
+    from public.user_mountains um
+    join public.mountains m on m.id = um.mountain_id
     where um.user_id = uid
     group by m.region
   ) p on p.region = r.region;
@@ -85,13 +76,13 @@ begin
   into _by_difficulty
   from (
     select difficulty_int, count(*)::int as total
-    from v_mountains
+    from public.v_mountains
     group by difficulty_int
   ) d
   left join (
     select vm.difficulty_int, count(*)::int as completed
-    from user_mountains um
-    join v_mountains vm on vm.id = um.mountain_id
+    from public.user_mountains um
+    join public.v_mountains vm on vm.id = um.mountain_id
     where um.user_id = uid
     group by vm.difficulty_int
   ) c on c.difficulty_int = d.difficulty_int;
@@ -105,7 +96,7 @@ begin
            'completed', coalesce(c.completed, 0)
          ) order by b.min_elevation_m nulls first), '[]'::jsonb)
   into _by_altitude
-  from v_altitude_buckets b
+  from public.v_altitude_buckets b
   left join (
     select
       case
@@ -115,21 +106,20 @@ begin
         else 'gte_3000'
       end as bucket_id,
       count(*)::int as completed
-    from user_mountains um
-    join mountains m on m.id = um.mountain_id
+    from public.user_mountains um
+    join public.mountains m on m.id = um.mountain_id
     where um.user_id = uid
     group by 1
   ) c on c.bucket_id = b.bucket_id;
 
-  -- Simple badge logic; keep server-side for determinism
   _badges := '[]'::jsonb;
   if _completed >= 1  then _badges := _badges || jsonb_build_object('key','first_step'); end if;
   if _completed >= 10 then _badges := _badges || jsonb_build_object('key','ten_done');  end if;
   if _completed >= 50 then _badges := _badges || jsonb_build_object('key','half_way');  end if;
   if exists (
     select 1
-    from user_mountains um
-    join v_mountains vm on vm.id = um.mountain_id
+    from public.user_mountains um
+    join public.v_mountains vm on vm.id = um.mountain_id
     where um.user_id = uid and vm.difficulty_int = 5
   ) then _badges := _badges || jsonb_build_object('key','five_star_climber'); end if;
 
@@ -144,37 +134,4 @@ begin
   );
 end $$;
 
-grant execute on function dashboard_snapshot(uuid) to anon, authenticated;
-
--- 3) Toggle completion and return fresh snapshot
-create or replace function toggle_completion(p_mountain_id text, p_mark boolean, p_user_id uuid default null)
-returns jsonb
-language plpgsql
-security definer
-volatile
-as $$
-declare
-  uid uuid := coalesce(p_user_id, auth.uid());
-begin
-  if uid is null then
-    raise exception 'User ID is required. Either authenticate or provide p_user_id parameter.';
-  end if;
-
-  if p_mark then
-    insert into user_mountains(user_id, mountain_id, completed_at, source)
-    values (uid, p_mountain_id, now(), 'manual')
-    on conflict (user_id, mountain_id) do nothing;
-  else
-    delete from user_mountains
-    where user_id = uid and mountain_id = p_mountain_id;
-  end if;
-
-  -- Return the fresh, authoritative snapshot
-  return dashboard_snapshot(uid);
-end $$;
-
-grant execute on function toggle_completion(text, boolean, uuid) to authenticated;
-
--- 4) Add helpful indexes if missing
-create index if not exists idx_um_user on user_mountains(user_id);
-create index if not exists idx_um_mountain on user_mountains(mountain_id);
+grant execute on function public.dashboard_snapshot(uuid) to anon, authenticated;
