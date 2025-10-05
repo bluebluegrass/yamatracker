@@ -1,0 +1,1 @@
+Moved from root. Original file: test-supabase-config.sh
