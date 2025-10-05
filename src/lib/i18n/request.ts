@@ -1,17 +1,1 @@
-import {getRequestConfig} from 'next-intl/server';
-
-export default getRequestConfig(async ({locale}) => {
-  // Handle case where locale might be undefined
-  if (!locale) {
-    console.warn('Locale is undefined, using default locale "en"');
-    return {
-      messages: (await import(`@/lib/i18n/messages/en.json`)).default,
-      locale: 'en'
-    };
-  }
-  
-  return {
-    messages: (await import(`@/lib/i18n/messages/${locale}.json`)).default,
-    locale
-  };
-});
+// English only, no dynamic request config needed
