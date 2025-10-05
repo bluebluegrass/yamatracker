@@ -22,22 +22,16 @@ Acceptance
 T02 — Schema Sanity Check & Indexes (no breaking changes)
 
 Do checklist
-
- Confirm mountains has: id, name_ja, name_en, name_zh, region, prefecture, elevation_m, difficulty.
-
- Confirm user_mountain_completions unique (user_id, mountain_id).
-
- Add indexes (if missing): mountains.region, mountains.difficulty, mountains.elevation_m.
+- [x] Confirm mountains has: id, name_ja, name_en, name_zh, region, prefecture, elevation_m, difficulty.
+- [x] Confirm user_mountain_completions unique (user_id, mountain_id).
+- [x] Add indexes (if missing): mountains.region, mountains.difficulty, mountains.elevation_m.
 
 Testing checklist
-
- EXPLAIN on region/difficulty queries shows index usage.
-
- Unique constraint prevents duplicates in user_mountain_completions.
+- [x] EXPLAIN on region/difficulty queries shows index usage.
+- [x] Unique constraint prevents duplicates in user_mountain_completions.
 
 Acceptance
-
- All checks pass; no column renames/drops.
+- [x] All checks pass; no column renames/drops.
 
 T03 — Public Profile Access Path (RLS-safe)
 
