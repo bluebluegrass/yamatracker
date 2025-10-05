@@ -1,63 +1,165 @@
 # Change List & New Features
+---
 
-## Landing Page (`/`)
-- **Hero layout with localized value prop & CTA**
-  - Why: Current page auto-redirects; needs persuasive messaging to drive sign-up/log-in.
-  - Files: `src/app/[locale]/page.tsx`, `src/lib/i18n/messages/*`, potential new `src/components/landing/Hero.tsx`.
-  - Risk: Medium (client component rewrite + localization coverage).
-- **Feature explainer section (map + list + dashboards + shareable profile)**
-  - Why: Communicate tracking workflow and future-state UI to new visitors.
-  - Files: `src/app/[locale]/page.tsx`, potential `src/components/landing/FeatureGrid.tsx`, asset references in `public/`.
-  - Risk: Low (static content, responsive layout work).
-- **Auth entry points (inline forms or modals)**
-  - Why: Reduce friction by surfacing sign-up/log-in directly on landing.
-  - Files: `src/components/auth/*` (new), `src/app/[locale]/page.tsx`, `src/lib/i18n/messages/*`.
-  - Risk: Medium (validation + shared usage between landing and dedicated pages).
-- **Optional social proof / screenshot carousel**
-  - Why: Increase credibility; highlight new tracker/profile visuals.
-  - Files: `public/images/landing/*`, new carousel component under `src/components/landing/`.
-  - Risk: Low (content dependency; ensure responsive behavior).
+# Change List & New Features — Hyakumeizan Tracker Redesign (October 2025)
 
-## Tracking Page (`/tracker` replacing `/dashboard`)
-- **Route realignment (`/tracker`) with locale support**
-  - Why: Naming clarity; align with product vocabulary.
-  - Files: rename `src/app/[locale]/dashboard/page.tsx` → `tracker/page.tsx`, update links (`LanguageSwitcher`, auth buttons, redirects).
-  - Risk: Medium (ensure middleware + links handle new path).
-- **Sidebar mountain list with search, filters, and sort toggles**
-  - Why: Current grid is hard to scan; new UX mandates searchable list with region/prefecture filters and “completed first” option.
-  - Files: new `src/components/tracker/MountainList.tsx`, `src/hooks/useMountainDirectory.ts` (new), updates to `useMountainCompletions` for derived selectors.
-  - Risk: High (significant interaction logic + performance considerations for 100-row list).
-- **Interactive Japan region map (cartoonized SVG)**
-  - Why: Visual completion feedback, region filtering entry point.
-  - Files: new `public/maps/japan-regions.svg`, `src/components/tracker/RegionMap.tsx`, shared styling in `styles/globals.css` or module CSS.
-  - Risk: High (asset prep, accessibility, sync between SVG IDs and DB region keys).
-- **Dashboard cards (difficulty, altitude buckets, total progress)**
-  - Why: Provide aggregate insights below the map per requirements.
-  - Files: extend/replace `src/components/dashboard/DifficultyBreakdown.tsx`, add `AltitudeBreakdown`, `TotalsCard`, update `src/types/dashboard.ts`.
-  - Risk: Medium (aggregation logic + layout responsiveness).
-- **Single data loader for tracker (server-driven or RPC-backed)**
-  - Why: Avoid client/data drift; ensure list, map, and dashboards read from the same dataset.
-  - Files: new `src/app/[locale]/tracker/loaders.ts` (server actions) or data hook refactor, reuse `dashboard_snapshot`, adjust `useMountainCompletions` to consume snapshot + handle optimistic updates.
-  - Risk: High (state management refactor; must preserve existing UX while adopting authoritative snapshot).
-- **Region filter interop between map and sidebar**
-  - Why: Clicking a region should filter the sidebar, and search should highlight counts on the map.
-  - Files: tracker page state container (e.g., `TrackerView.tsx`), shared context/store, `RegionMap.tsx`, `MountainList.tsx`.
-  - Risk: Medium (cross-component state coordination).
-- **Loading, error, and empty states revamp**
-  - Why: Current UI shows generic “Loading…”; need skeletons and actionable errors.
-  - Files: `src/components/tracker/LoadingState.tsx`, `useMountainCompletions.ts`, `RegionMap.tsx`.
-  - Risk: Low (mostly UI scaffolding, but verify hooks provide status flags).
-- **Analytics hooks (optional, MVP)**
-  - Why: Track completion toggles, filter usage, sharing events for future insights.
-  - Files: new lightweight analytics helper (`src/lib/analytics.ts`), instrumentation in tracker components.
-  - Risk: Low (non-blocking; degrade gracefully if analytics disabled).
+## Overview
+This document enumerates all changes required to achieve the new UX, grouped by page/feature. Each item includes rationale, affected files/dirs, and risk level.
 
-## Personal Profile (`/u/[slug]`)
-- **Server-side data fetch with RLS-safe view**
-  - Why: Current client fetch is blocked by RLS; must expose only public fields.
-  - Files: new Supabase view (e.g., `public_profile_view`), API route or server component loader, update `src/app/u/[slug]/page.tsx` to be server-rendered.
-  - Risk: High (requires DB migration + RLS adjustments; must avoid leaking private data).
-- **Name-card layout with avatar, per-region matrix, badges**
+---
+
+## 1. Landing Page (`/`)
+### Changes
+- Add hero section with value props and CTA (Sign Up / Log In)
+- Add explainer of tracking flow (map + list + dashboards + shareable profile)
+- Optionally add social proof/screenshots
+
+**Why:** Improves onboarding, clarifies value, increases conversion.
+**Files/Dirs:**
+- `src/app/[locale]/page.tsx`
+- `src/lib/i18n/messages/*`
+- Asset folder for images/screenshots
+**Risk:** Low (UI only)
+
+---
+
+## 2. Tracking Page (`/tracker`)
+### Changes
+- Sidebar: searchable, filterable list of 100 mountains (EN/JA/ZH, region, prefecture)
+- Sidebar: toggle to float climbed items to top
+- Main: SVG cartoonized region map, region completion counts, interactive filtering
+- Dashboards: difficulty breakdown, altitude buckets, total climbed
+- All aggregates derived from single source of truth (DB)
+
+**Why:** Centralizes progress tracking, improves UX, prevents desync.
+**Files/Dirs:**
+- `src/app/[locale]/tracker-v2/page.tsx`
+- `src/components/tracker/*`
+- `src/components/dashboard/*`
+- `src/lib/constants/mountains.ts`
+- `src/lib/data/mountains.json`
+- SVG asset folder
+**Risk:** Medium (SVG integration, state sync)
+
+---
+
+## 3. Personal Profile Page (`/u/[slug]`)
+### Changes
+- Public, shareable slug (not tied to email/UID)
+- Name-card visual: display name, avatar, total climbed, per-region matrix, badges
+- Copy-to-clipboard share link
+- Privacy: expose only whitelisted public fields, respect RLS
+
+**Why:** Enables sharing, social proof, privacy compliance.
+**Files/Dirs:**
+- `src/app/u/[slug]/page.tsx`
+- `src/components/sharing/*`
+- DB schema/migrations (profiles, RLS)
+**Risk:** Medium (privacy, slug collision)
+
+---
+
+## 4. Shared State & Data Layer
+### Changes
+- Consolidate reads/writes to single DB source
+- Debounced optimistic updates for completions
+- Error handling for network failures
+- All dashboard widgets read from same queried dataset
+
+**Why:** Prevents desync, improves reliability, easier debugging.
+**Files/Dirs:**
+- `src/hooks/useMountainCompletions.ts`
+- `src/lib/supabase/api.ts`
+- `src/types/dashboard.ts`, `src/types/mountain.ts`
+- DB views/RPCs
+**Risk:** High (data integrity, debugging)
+
+---
+
+## 5. Database Schema & Migrations
+### Changes
+- Confirm canonical mountains dataset (deduped, all fields present)
+- Ensure region, difficulty, elevation consistency
+- Add/extend views for region, difficulty, altitude buckets
+- Migration strategy: additive, non-breaking
+
+**Why:** Ensures data quality, supports new dashboards, prevents breaking changes.
+**Files/Dirs:**
+- `db/schema.sql`, `db/seed_mountains.sql`, `db/views_and_rpcs.sql`
+- `supabase/migrations/*`
+**Risk:** Medium (migration safety)
+
+---
+
+## 6. i18n & Localization
+### Changes
+- Localize all new UI and copy (EN/JA/ZH)
+- Ensure region names, difficulty, and dashboard labels are translated
+
+**Why:** Supports multi-lingual users, improves accessibility.
+**Files/Dirs:**
+- `src/lib/i18n/messages/*`
+- UI components
+**Risk:** Low
+
+---
+
+## 7. Analytics & Telemetry (Optional MVP)
+### Changes
+- Track key events: mark climbed/unclimbed, share profile, region filter
+- Add sanity checks for aggregate mismatches
+
+**Why:** Enables usage insights, debugging, and data validation.
+**Files/Dirs:**
+- Shared lib for analytics hooks
+- UI event handlers
+**Risk:** Low
+
+---
+
+## 8. Visual & Asset Updates
+### Changes
+- Finalize SVG map asset (regions, IDs)
+- Add visual style references for cartoon map and badges
+- Update dashboard card visuals
+
+**Why:** Ensures cohesive, appealing UI.
+**Files/Dirs:**
+- Asset folder for SVGs/images
+- `src/components/dashboard/*`, `src/components/tracker/*`
+**Risk:** Medium (designer dependency)
+
+---
+
+## 9. Miscellaneous
+### Changes
+- Update onboarding copy, CTA, and help text
+- Add loading skeletons and error states to all async components
+
+**Why:** Improves UX, reduces confusion, increases polish.
+**Files/Dirs:**
+- `src/app/[locale]/page.tsx`, `src/components/*`
+- i18n messages
+**Risk:** Low
+
+---
+
+## Summary Table
+| Feature/Page         | Change Summary                                 | Files/Dirs                        | Risk Level |
+|---------------------|------------------------------------------------|------------------------------------|------------|
+| Landing Page        | Hero, CTA, explainer, social proof             | page.tsx, i18n, assets             | Low        |
+| Tracking Page       | Sidebar, SVG map, dashboards, state sync       | tracker-v2, components, SVG, data  | Medium     |
+| Profile Page        | Slug, name-card, badges, privacy               | u/[slug], sharing, DB, RLS         | Medium     |
+| State/Data Layer    | Single source, debounced updates, error handle | hooks, API, types, DB views        | High       |
+| DB Schema           | Canonical data, views, migrations               | schema, seed, views, migrations    | Medium     |
+| i18n                | Localize all new UI/copy                        | i18n, UI components                | Low        |
+| Analytics           | Track events, sanity checks                     | analytics lib, UI handlers         | Low        |
+| Visual/Assets       | SVG map, style refs, dashboard visuals          | assets, dashboard/tracker comps    | Medium     |
+| Miscellaneous       | Copy, loading skeletons, error states           | page.tsx, components, i18n         | Low        |
+
+---
+
+See `tasks-mvp-tracker.md` for the step-by-step implementation plan.
   - Why: Meet shareable design requirements.
   - Files: rewrite `src/app/u/[slug]/page.tsx`, add `src/components/profile/ProfileCard.tsx`, CSS in `styles/globals.css` or new module.
   - Risk: Medium (design implementation + responsiveness).

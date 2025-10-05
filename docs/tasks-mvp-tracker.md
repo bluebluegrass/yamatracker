@@ -1,62 +1,146 @@
-# MVP Tracker Task Plan
 
-Tasks are strictly ordered; complete one before starting the next. Each task is scoped to ~10 minutes of work.
+# Step-by-Step Task Plan — Hyakumeizan Tracker Redesign (October 2025)
 
-## T1. Align `mountains` schema with current feature needs
-- **Goal:** Ensure the Supabase `mountains` table exposes `difficulty`, `prefecture`, and elevation data expected by the app.
-- **Inputs/Decisions:** Final column list (difficulty stars, physicality, optional metadata); confirm production DB shape.
-- **Proposed file edits:** `supabase/migrations/<new>_alter_mountains.sql`, `db/schema.sql`, `src/types/mountain.ts` (if fields change).
-- **Acceptance criteria:** Migration runs locally without errors; TypeScript types compile; `npm run lint` passes.
-- **Rollback:** Revert the migration and schema/type changes; rerun previous migration snapshot.
+This plan breaks the redesign into very small, testable, reversible tasks. Each task includes: Goal, Inputs/Decisions, Proposed file edits, Acceptance criteria, and Rollback.
 
-## T2. Refresh canonical mountain seed data
-- **Goal:** Synchronize seed dataset with canonical 100-mountain list, including difficulty and altitude info.
-- **Inputs/Decisions:** Authoritative spreadsheet/source; how to handle missing translations.
-- **Proposed file edits:** `db/seed_mountains.sql`, optional CSV/JSON under `src/lib/data/` for reference.
-- **Acceptance criteria:** Seed script loads in Supabase sandbox without constraint violations; sample query returns expected fields.
-- **Rollback:** Restore prior seed file; re-seed database from backup.
+---
 
-## T3. Define altitude buckets and difficulty constants
-- **Goal:** Centralize altitude bucket thresholds and difficulty labels for reuse across UI and DB views.
-- **Inputs/Decisions:** Thresholds (<1000, 1000–1999, 2000–2999, ≥3000) and star scale (★–★★★★).
-- **Proposed file edits:** New constants module (`src/lib/constants/mountains.ts`), update `docs/change-list.md` if thresholds change.
-- **Acceptance criteria:** Constants exported with tests (or unit assertions) covering buckets; `npm run lint`.
-- **Rollback:** Remove new constants module; revert docs.
+## T1. Confirm single source of truth for completions
+- **Goal:** Identify and document where completion state is persisted and how it flows to UI.
+- **Inputs/Decisions:** Does `user_mountains` exist? What fields? Are there conflicting client caches?
+- **Proposed file edits:** None (audit only)
+- **Acceptance:** Diagram of current data flow added to `docs/audit-2025-10.md`.
+- **Rollback:** N/A (read-only)
 
-## T4. Extend Supabase views with altitude aggregates
-- **Goal:** Provide `v_altitude_buckets` or extend `dashboard_snapshot` with bucket counts for consistent server-side data.
-- **Inputs/Decisions:** Whether to create a new view vs. mutate `dashboard_snapshot`; confirm backward compatibility.
-- **Proposed file edits:** `db/views_and_rpcs.sql`, new `supabase/migrations/<new>_altitude_view.sql`.
-- **Acceptance criteria:** Running migration exposes new view; calling `dashboard_snapshot` via Supabase SQL returns altitude data without breaking existing fields.
-- **Rollback:** Drop new view/function version and revert migration.
+---
 
-## T5. Add public profile view with RLS-safe fields
-- **Goal:** Create a Supabase view or RPC that exposes `{ slug, display_name, avatar_url, completion_counts }` while respecting privacy.
-- **Inputs/Decisions:** Final list of public columns; whether badges are included.
-- **Proposed file edits:** `supabase/migrations/<new>_public_profile_view.sql`, `db/views_and_rpcs.sql` docs.
-- **Acceptance criteria:** Authenticated anon key can `select` from the new view by slug; no private columns exposed; RLS tests pass.
-- **Rollback:** Drop the view and revert migration.
+## T2. Define region map asset contract
+- **Goal:** Decide on the SVG asset (regions and IDs) and how counts/opacity map to completion.
+- **Inputs/Decisions:** SVG file or plan to generate; region identifiers must match `mountains.region` values.
+- **Proposed file edits:** None (spec only)
+- **Acceptance:** `docs/open-questions.md` updated with asset needs; spec in `docs/change-list.md`.
+- **Rollback:** N/A
 
-## T6. Update Supabase client helpers
-- **Goal:** Wrap RPC/view calls in a typed data access layer.
-- **Inputs/Decisions:** Decide between server actions vs. route handlers; data shapes to expose.
-- **Proposed file edits:** New module `src/lib/data-access/supabase.ts`, update `src/lib/supabase/api.ts` to export new helpers.
-- **Acceptance criteria:** TypeScript compile; `npm run lint`; unit tests (if added) cover at least snapshot fetch.
-- **Rollback:** Remove new module; revert API helper edits.
+---
 
-## T7. Refactor `useMountainCompletions` to consume snapshot API
-- **Goal:** Use the new data layer for reads/writes, ensuring the hook stays in sync with server aggregates.
-- **Inputs/Decisions:** How to merge snapshot data with optimistic updates; error handling strategy.
-- **Proposed file edits:** `src/hooks/useMountainCompletions.ts`, possibly new tests/hooks docs.
-- **Acceptance criteria:** Toggling a mountain fetches updated snapshot; local state mirrors server data; lint passes.
-- **Rollback:** Revert hook changes to prior implementation.
+## T3. Sidebar list spec
+- **Goal:** Specify the props/state shape for the MountainList component, search behavior, and selection handling.
+- **Inputs/Decisions:** Finalized field names, i18n approach, debounce timings.
+- **Proposed file edits:** None (API contract only)
+- **Acceptance:** API contract written in `docs/change-list.md`.
+- **Rollback:** N/A
 
-## T8. Create tracker page loader (server component or route)
-- **Goal:** Fetch snapshot + mountain metadata server-side and stream to the tracker page.
-- **Inputs/Decisions:** Choose between server component loader vs. `/api/tracker` JSON endpoint.
-- **Proposed file edits:** `src/app/[locale]/tracker/page.tsx` (convert to server/Client boundary), new loader file (`src/app/[locale]/tracker/loader.ts`).
-- **Acceptance criteria:** Tracker renders with server-fetched data in dev; hydration succeeds; lint passes.
-- **Rollback:** Restore previous client-only page.
+---
+
+## T4. Dashboard cards spec
+- **Goal:** Define the data interfaces and aggregation rules for difficulty/altitude/total.
+- **Inputs/Decisions:** Difficulty range (★–★★★★) and altitude bucket thresholds.
+- **Proposed file edits:** None (spec only)
+- **Acceptance:** Contracts in `docs/change-list.md`.
+- **Rollback:** N/A
+
+---
+
+## T5. Profile slug & privacy rules
+- **Goal:** Define slug generation, privacy fields, and RLS implications.
+- **Inputs/Decisions:** Whether slugs already exist in `profiles`; collision strategy.
+- **Proposed file edits:** None (spec only)
+- **Acceptance:** Documented in `docs/change-list.md`.
+- **Rollback:** N/A
+
+---
+
+## T6. Error states & loading skeletons
+- **Goal:** Specify UX for network failures and loading.
+- **Inputs/Decisions:** Error message copy, skeleton design.
+- **Proposed file edits:** None (spec only)
+- **Acceptance:** Documented patterns and where to apply them.
+- **Rollback:** N/A
+
+---
+
+## T7. Integrate SVG region map
+- **Goal:** Add SVG map to tracker page and wire up region click filtering.
+- **Inputs/Decisions:** Final SVG asset, region ID mapping.
+- **Proposed file edits:** `src/components/tracker/RegionMap.tsx`, `src/app/[locale]/tracker-v2/page.tsx`
+- **Acceptance:** Clicking a region filters sidebar; map colors reflect completion.
+- **Rollback:** Remove SVG integration, revert to static dashboard.
+
+---
+
+## T8. Implement sidebar search/filter/sort
+- **Goal:** Add search, region/prefecture filter, and "completed first" toggle to sidebar list.
+- **Inputs/Decisions:** Search debounce timing, filter logic, sort order.
+- **Proposed file edits:** `src/components/tracker/MountainList.tsx`, `src/hooks/useMountainDirectory.ts`
+- **Acceptance:** Sidebar list updates in real time; filters and sort work as specified.
+- **Rollback:** Remove new sidebar features, revert to basic list.
+
+---
+
+## T9. Dashboard card implementation
+- **Goal:** Implement difficulty, altitude, and total progress cards below map.
+- **Inputs/Decisions:** Data aggregation logic, card layout.
+- **Proposed file edits:** `src/components/dashboard/DifficultyBreakdown.tsx`, `src/components/dashboard/AltitudeBreakdown.tsx`, `src/components/tracker/TrackerTotalsCard.tsx`, `src/types/dashboard.ts`
+- **Acceptance:** Cards show correct aggregates, update with completion state.
+- **Rollback:** Remove new cards, revert to old dashboard.
+
+---
+
+## T10. Data loader refactor
+- **Goal:** Refactor tracker page to use a single authoritative data loader (RPC-backed).
+- **Inputs/Decisions:** Loader API, optimistic update strategy.
+- **Proposed file edits:** `src/app/[locale]/tracker-v2/loaders.ts`, `src/hooks/useMountainCompletions.ts`
+- **Acceptance:** All tracker widgets read from same dataset; optimistic updates work.
+- **Rollback:** Revert to previous client-side state management.
+
+---
+
+## T11. Profile page migration
+- **Goal:** Migrate profile page to use RLS-safe view and expose only public fields.
+- **Inputs/Decisions:** DB view schema, RLS policy, public field whitelist.
+- **Proposed file edits:** DB migration, `src/app/u/[slug]/page.tsx`
+- **Acceptance:** Public profile loads securely; no private data exposed.
+- **Rollback:** Revert to test user fallback.
+
+---
+
+## T12. i18n coverage for new UI
+- **Goal:** Localize all new UI and copy (EN/JA/ZH).
+- **Inputs/Decisions:** Final copy, translation sources.
+- **Proposed file edits:** `src/lib/i18n/messages/*`, UI components
+- **Acceptance:** All new UI is localized; language switch works.
+- **Rollback:** Remove new i18n keys, revert to English-only.
+
+---
+
+## T13. Analytics hooks (optional)
+- **Goal:** Add event tracking for key actions (climb, share, filter).
+- **Inputs/Decisions:** Analytics schema, event names.
+- **Proposed file edits:** `src/lib/analytics.ts`, tracker/profile components
+- **Acceptance:** Events fire on key actions; data is logged or sent.
+- **Rollback:** Remove analytics hooks.
+
+---
+
+## T14. Visual style and asset updates
+- **Goal:** Finalize SVG map, badge visuals, dashboard card styles.
+- **Inputs/Decisions:** Designer input, asset delivery.
+- **Proposed file edits:** Asset folder, dashboard/tracker components
+- **Acceptance:** UI matches visual spec; assets load correctly.
+- **Rollback:** Revert to previous visuals/assets.
+
+---
+
+## T15. Final QA and polish
+- **Goal:** Test all new features, error states, and loading skeletons; fix bugs.
+- **Inputs/Decisions:** QA checklist, bug reports.
+- **Proposed file edits:** Any affected files
+- **Acceptance:** All acceptance criteria met; no regressions.
+- **Rollback:** Revert problematic changes.
+
+---
+
+See `open-questions.md` for missing inputs and decisions needed before starting each task.
 
 ## T9. Implement tracker layout shell (two-column responsive)
 - **Goal:** Establish sidebar/main layout with placeholders for list, map, dashboards.

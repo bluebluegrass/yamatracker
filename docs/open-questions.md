@@ -1,18 +1,53 @@
 # Open Questions & Missing Inputs
 
-- Final cartoonized Japan region SVG with stable `id`s matching `mountains.region`; need from design/illustration partner (attach to `public/maps`).
-- Canonical 100-mountain dataset (EN/JA/ZH names, prefecture splits, difficulty stars, elevation) and update cadence; confirm owner (likely product/data team).
-- Altitude bucket thresholds and labeling approval (e.g., `<1000m`, `1000–1999m`, `2000–2999m`, `≥3000m`); align with mountaineering adviser.
-- Difficulty scale definition (★ to ★★★★ or ★★★★★?) and mapping to `mountains.difficulty`; confirm with content team.
-- Landing page hero/feature copy for en/ja/zh plus social proof assets/screenshots; marketing to supply.
-- Visual style direction for tracker cards, map shading palette, and profile name-card treatment; design system team to deliver Figma references.
-- Avatar source and storage strategy for profiles (upload vs. external URL); clarify with backend/product.
-- Public profile fields allowed for exposure (email, join date?) and privacy policy alignment; legal/product decision.
-- Slug collision resolution (auto-increment suffix vs. prompt user); need product guidance.
-- Analytics provider selection (Segment, PostHog, custom) and event taxonomy; await growth/analytics team input.
-- Error messaging tone and localization for new flows (map load failure, analytics opt-in); copywriting team to draft.
-- Performance budget for tracker page (bundle size target, acceptable initial load); frontend lead to specify.
-- Testing strategy expectations (Cypress/E2E vs. Playwright vs. manual checklist); QA lead to decide.
-- Deployment workflow for Supabase migrations (use `supabase db push` vs. manual SQL); DevOps owner to confirm.
-- Accessibility requirements for SVG map and shareable assets (color contrast, keyboard nav, alt text); accessibility specialist sign-off needed.
-- Locale expansion roadmap beyond en/ja/zh (e.g., Korean); determine if infrastructure should anticipate additional languages now.
+A bullet list of all data, assets, and decisions still needed to proceed. Specify who/where to get them if known.
+
+---
+
+- **Final SVG map asset of Japan with region paths and stable `id`s mapping to `mountains.region` values**
+	- Who: Designer or external asset source
+	- Where: Asset folder (public/maps/), spec in change-list.md
+
+- **Canonical list of 100 mountains** (IDs, names in EN/JA/ZH, region, prefecture, elevation, difficulty)
+	- Who: Product owner or authoritative spreadsheet/source
+	- Where: db/seed_mountains.sql, src/lib/data/mountains.json
+
+- **Difficulty scale**: Confirm official range (★ to ★★★★ or other)
+	- Who: Product owner or reference guide
+	- Where: src/lib/constants/mountains.ts, docs/change-list.md
+
+- **Altitude buckets**: Confirm thresholds (<1000, 1000–1999, 2000–2999, ≥3000)
+	- Who: Product owner or reference guide
+	- Where: src/lib/constants/mountains.ts, db/views_and_rpcs.sql
+
+- **Landing page and profile copy** (CTA, hero, help text)
+	- Who: Copywriter or product owner
+	- Where: src/lib/i18n/messages/*, docs/change-list.md
+
+- **Visual style references for cartoonized map & badges**
+	- Who: Designer
+	- Where: Asset folder, dashboard/tracker components
+
+- **Public profile fields**: Exact list of what can be exposed (no private data)
+	- Who: Product owner, DB designer
+	- Where: DB view, src/app/u/[slug]/page.tsx
+
+- **i18n locales in scope for MVP** (EN/JA/ZH, others?)
+	- Who: Product owner
+	- Where: src/lib/i18n/messages/*
+
+- **Analytics event schema (if needed)**
+	- Who: Product owner, dev lead
+	- Where: src/lib/analytics.ts, docs/change-list.md
+
+- **Migration strategy for DB views** (additive, non-breaking)
+	- Who: DB designer
+	- Where: db/views_and_rpcs.sql, supabase/migrations/*
+
+- **QA checklist and bug reporting process**
+	- Who: QA lead
+	- Where: docs/tasks-mvp-tracker.md
+
+---
+
+Update this list as new questions arise or decisions are made. Reference in each task before implementation.
