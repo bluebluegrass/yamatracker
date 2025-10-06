@@ -14,8 +14,7 @@ interface TogglePayload {
 }
 
 export async function toggleMountainAction({ locale, mountainId, mark }: TogglePayload): Promise<DashboardSnapshot | null> {
-  const cookieStore = cookies();
-  const supabase = createServerActionClient<Database>({ cookies: () => cookieStore });
+  const supabase = createServerActionClient<Database>({ cookies });
 
   const {
     data: { user },

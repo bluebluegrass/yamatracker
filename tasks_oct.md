@@ -144,14 +144,14 @@ Do checklist
 - [x] Prevent duplicate writes on rapid toggles.
 - [x] DB remains single source of truth.
 
-Testing checklist
-
-- [ ] Rapid toggle does not create dupes.
-- [ ] DB shows exactly one row per climbed item.
+- Testing checklist
+ 
+- [x] Rapid toggle does not create dupes.
+- [x] DB shows exactly one row per climbed item.
 
 Acceptance
 
-- [ ] Toggle UX reliable; DB consistent.
+- [x] Toggle UX reliable; DB consistent.
 
 T10 — Aggregates on the Tracker Page (auth)
 

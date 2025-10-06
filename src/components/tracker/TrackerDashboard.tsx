@@ -1,4 +1,6 @@
 import React from 'react';
+import Image from 'next/image';
+import japanMap from '@/../public/japan_map.svg';
 import type { DashboardSnapshot } from '@/types/dashboard';
 import { TrackerTotalsCard } from './TrackerTotalsCard';
 
@@ -91,11 +93,14 @@ export function TrackerDashboard({ snapshot }: TrackerDashboardProps) {
         <div className="grid gap-4 lg:grid-cols-3">
           <TrackerTotalsCard total={snapshot.total} completed={snapshot.completed} />
         </div>
-        <img
-          src="/japan_map.svg"
-          alt="Japan Map"
-          className="my-8 mx-auto w-full max-w-xl"
-        />
+        <div className="my-8 flex justify-center">
+          <Image
+            src={japanMap}
+            alt="Japan Map"
+            className="h-auto w-full max-w-xl"
+            priority
+          />
+        </div>
         <div className="grid gap-4 lg:grid-cols-2">
           <DifficultyBreakdown snapshot={snapshot} />
           <AltitudeBreakdown snapshot={snapshot} />
