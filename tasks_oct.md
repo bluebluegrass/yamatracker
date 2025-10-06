@@ -157,21 +157,18 @@ T10 — Aggregates on the Tracker Page (auth)
 
 Do checklist
 
- Server-fetch region/difficulty/altitude aggregates for /tracker.
-
- Hydrate once; Sidebar/Map/Dashboards consume the same payloads.
-
- Recompute after toggles (refetch/invalidate).
+- [x] Server-fetch region/difficulty/altitude aggregates for /tracker.
+- [x] Hydrate once; Sidebar/Map/Dashboards consume the same payloads.
+- [x] Recompute after toggles (refetch/invalidate).
 
 Testing checklist
 
- Toggling 1 item updates all three areas on next render.
-
- No component-local aggregate math.
+- [x] Toggling 1 item updates all three areas on next render.
+- [x] No component-local aggregate math.
 
 Acceptance
 
- Single aggregate source drives the tracker.
+- [x] Single aggregate source drives the tracker.
 
 T11 — Placeholder Region Map + Count Overlays
 
