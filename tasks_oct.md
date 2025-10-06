@@ -139,23 +139,19 @@ T09 — Completion Toggle Plumbing (single write path)
 
 Do checklist
 
- Add checkbox/toggle per row.
-
- On toggle: call server write (T05) → optimistic update → debounce → rollback on error.
-
- Prevent duplicate writes on rapid toggles.
-
- DB remains single source of truth.
+- [x] Add checkbox/toggle per row.
+- [x] On toggle: call server write (T05) → optimistic update → debounce → rollback on error.
+- [x] Prevent duplicate writes on rapid toggles.
+- [x] DB remains single source of truth.
 
 Testing checklist
 
- Rapid toggle does not create dupes.
-
- DB shows exactly one row per climbed item.
+- [ ] Rapid toggle does not create dupes.
+- [ ] DB shows exactly one row per climbed item.
 
 Acceptance
 
- Toggle UX reliable; DB consistent.
+- [ ] Toggle UX reliable; DB consistent.
 
 T10 — Aggregates on the Tracker Page (auth)
 

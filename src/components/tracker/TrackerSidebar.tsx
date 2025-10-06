@@ -9,13 +9,19 @@ const altitudeFormatter = new Intl.NumberFormat('en', {
 
 type TrackerSidebarProps = {
   mountains: CanonicalMountain[];
+  completedIds: readonly string[];
+  pendingIds?: readonly string[];
+  onToggle?: (mountainId: string) => void;
 };
 
-export function TrackerSidebar({ mountains }: TrackerSidebarProps) {
+export function TrackerSidebar({ mountains, completedIds, pendingIds = [], onToggle }: TrackerSidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRegion, setSelectedRegion] = useState<string>('all');
 
   const deferredSearch = useDeferredValue(searchTerm);
+
+  const completedSet = useMemo(() => new Set(completedIds), [completedIds]);
+  const pendingSet = useMemo(() => new Set(pendingIds), [pendingIds]);
 
   const regions = useMemo(() => {
     const unique = new Set<string>();
@@ -86,20 +92,39 @@ export function TrackerSidebar({ mountains }: TrackerSidebarProps) {
 
       <div className="flex-1 overflow-y-auto rounded-lg border border-slate-200 bg-white">
         <ul className="divide-y divide-slate-100">
-          {filteredMountains.map((mountain) => (
-            <li key={mountain.id} className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="text-sm font-semibold text-slate-900">{mountain.name_en}</div>
-                  <div className="text-xs text-slate-500">{mountain.name_ja}</div>
-                </div>
-                <div className="text-right text-xs text-slate-500">
-                  <div>{mountain.region}</div>
-                  <div>{altitudeFormatter.format(mountain.elevation_m)} m</div>
-                </div>
-              </div>
-            </li>
-          ))}
+          {filteredMountains.map((mountain) => {
+            const isCompleted = completedSet.has(mountain.id);
+            const isPending = pendingSet.has(mountain.id);
+
+            return (
+              <li
+                key={mountain.id}
+                className={`px-4 py-3 transition ${
+                  isCompleted ? 'bg-indigo-50/80' : 'bg-white'
+                } ${isPending ? 'opacity-75' : ''}`}
+              >
+                <label className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      checked={isCompleted}
+                      disabled={isPending || !onToggle}
+                      onChange={() => onToggle?.(mountain.id)}
+                    />
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900">{mountain.name_en}</div>
+                      <div className="text-xs text-slate-500">{mountain.name_ja}</div>
+                    </div>
+                  </div>
+                  <div className="text-right text-xs text-slate-500">
+                    <div>{mountain.region}</div>
+                    <div>{altitudeFormatter.format(mountain.elevation_m)} m</div>
+                  </div>
+                </label>
+              </li>
+            );
+          })}
 
           {filteredMountains.length === 0 && (
             <li className="p-6 text-center text-sm text-slate-500">
