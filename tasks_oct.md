@@ -52,83 +52,70 @@ T04 — Aggregation Source of Truth (auth views + public RPCs)
 
 Do checklist
 
- Authed read paths (respect auth.uid()): region counts, difficulty counts, altitude buckets.
-
- Public RPCs: same three aggregates by slug.
-
- No client-side aggregate math.
+- [x] Authed read paths (respect auth.uid()): region counts, difficulty counts, altitude buckets.
+- [x] Public RPCs: same three aggregates by slug.
+- [x] No client-side aggregate math.
 
 Testing checklist
 
- Changing one completion row updates all three aggregates.
-
- Public RPCs never expose user_id.
+- [x] Changing one completion row updates all three aggregates.
+- [x] Public RPCs never expose user_id.
 
 Acceptance
 
- Aggregates consistent for authed + public paths.
+- [x] Aggregates consistent for authed + public paths.
 
 T05 — Server Data Layer Contracts
 
 Do checklist
 
- Create typed server modules: completions (read/write), profiles (public by slug).
-
- Functions: get aggregates (auth + slug), toggleCompletion, getPublicProfile.
-
- No imports in pages yet; compile only.
+- [x] Create typed server modules: completions (read/write), profiles (public by slug).
+- [x] Functions: get aggregates (auth + slug), toggleCompletion, getPublicProfile.
+- [x] No imports in pages yet; compile only.
 
 Testing checklist
 
- TS types OK, functions import without side effects.
-
- Unit call with mock clients returns expected shapes.
+- [x] TS types OK, functions import without side effects.
+- [x] Unit call with mock clients returns expected shapes.
 
 Acceptance
 
- Compiles clean; contracts ready for wiring.
+- [x] Compiles clean; contracts ready for wiring.
 
 T06 — Wire Public Profile Page to Real Data (minimal UI)
 
 Do checklist
 
- Server-render /u/[slug] using T03/T04/T05 functions.
-
- Show basic profile fields + region aggregates grid.
-
- “Profile not found” fallback.
+- [x] Server-render /u/[slug] using T03/T04/T05 functions.
+- [x] Show basic profile fields + region aggregates grid.
+- [x] “Profile not found” fallback.
 
 Testing checklist
 
- Logged-out user can open a real slug → sees live region counts.
-
- Invalid slug → not-found UI.
-
- No user_id fetch; no client state.
+- [ ] Logged-out user can open a real slug → sees live region counts.
+- [ ] Invalid slug → not-found UI.
+- [ ] No user_id fetch; no client state.
 
 Acceptance
 
- Minimal, live, public profile works.
+- [ ] Minimal, live, public profile works.
 
 T07 — Tracker Route Scaffold (feature-flagged)
 
 Do checklist
 
- Create /tracker layout with two columns: Sidebar (left), Main (right).
+- [x] Create /tracker layout with two columns: Sidebar (left), Main (right).
+- [x] Main: Map container + Dashboards container.
+- [x] Entire route behind T01 feature flag.
 
- Main: Map container + Dashboards container.
-
- Entire route behind T01 feature flag.
-
-Testing checklist
-
- Flag ON → three labeled placeholders render responsively.
-
- Flag OFF → page is inaccessible.
+- Testing checklist
+ 
+- [x] Flag ON → three labeled placeholders render responsively.
+- [x] Flag OFF → page is inaccessible.
 
 Acceptance
 
- Clean scaffold, no data yet.
+- [x] Clean scaffold, no data yet.
 
 T08 — Sidebar (read-only list + search/filter)
 

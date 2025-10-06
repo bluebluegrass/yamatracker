@@ -6,7 +6,7 @@ import type { DashboardSnapshot } from '@/types/dashboard';
 import type { Database } from '@/types/supabase';
 
 export async function loadSnapshot(): Promise<DashboardSnapshot> {
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore });
   const {
     data: { user },

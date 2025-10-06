@@ -277,7 +277,7 @@ function buildUserPrompt(
   return [{ role: 'user' as const, content }];
 }
 
-function inferHeuristicsFromText(text: string): { nearTokyo?: boolean; season?: 'spring' | 'summer' | 'autumn' | 'winter'; difficultyStars?: string[]; regions?: string[] } {
+function inferHeuristicsFromText(text: string): { nearTokyo?: boolean; nearOsaka?: boolean; season?: 'spring' | 'summer' | 'autumn' | 'winter'; difficultyStars?: string[]; regions?: string[] } {
   const t = (text || '').toLowerCase();
   const nearTokyo = /新宿|東京|tokyo|shinjuku/.test(t) && /(3\s*个?小时|3\s*hours|三小时)/.test(t);
   const nearOsaka = /大阪|osaka/.test(t) && /(新干线|shinkansen|新幹線)/.test(t);
