@@ -1,12 +1,22 @@
 import { notFound } from 'next/navigation';
 import { isTrackerV2Enabled } from '@/lib/config/features';
+import { TrackerSidebar } from '@/components/tracker/TrackerSidebar';
+import { getCanonicalMountains } from '@/lib/server/mountains';
+import type { CanonicalMountain } from '@/types/mountain';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default function TrackerScaffoldPage() {
+export default async function TrackerScaffoldPage() {
   if (!isTrackerV2Enabled()) {
     notFound();
+  }
+
+  let mountains: CanonicalMountain[] = [];
+  try {
+    mountains = await getCanonicalMountains();
+  } catch (error) {
+    console.error('Tracker scaffold failed to load mountains', error);
   }
 
   return (
@@ -14,11 +24,7 @@ export default function TrackerScaffoldPage() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row">
         <aside className="lg:w-80">
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Sidebar</div>
-            <p className="mt-3 text-sm text-slate-600">
-              Tracker controls &amp; mountain list will live here. For now this is a placeholder
-              to validate responsive layout behaviour.
-            </p>
+            <TrackerSidebar mountains={mountains} />
           </div>
         </aside>
 

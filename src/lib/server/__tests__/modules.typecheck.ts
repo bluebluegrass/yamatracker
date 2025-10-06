@@ -4,7 +4,9 @@ import type { DashboardSnapshot } from '@/types/dashboard';
 import type { PublicProfile } from '@/types/profile';
 import type { Database } from '@/types/supabase';
 import { getAggregates, getAggregatesBySlug, toggleCompletion } from '../completions';
+import { getCanonicalMountains } from '../mountains';
 import { getPublicProfile } from '../profiles';
+import type { CanonicalMountain } from '@/types/mountain';
 
 const mockClient = {} as SupabaseClient<Database>;
 
@@ -30,5 +32,12 @@ async function ensureProfilesContract() {
   void typedProfile;
 }
 
+async function ensureMountainsContract() {
+  const mountains = await getCanonicalMountains();
+  const typedMountains: CanonicalMountain[] = mountains;
+  void typedMountains;
+}
+
 void ensureCompletionsContract;
 void ensureProfilesContract;
+void ensureMountainsContract;

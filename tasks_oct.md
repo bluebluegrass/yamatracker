@@ -121,23 +121,19 @@ T08 — Sidebar (read-only list + search/filter)
 
 Do checklist
 
- SSR fetch canonical 100 mountains.
+- [x] SSR fetch canonical 100 mountains.
+- [x] Render: names (JA/EN), region, elevation.
+- [x] Add debounced search (names) + region dropdown filter.
+- [x] No writes; no toggles.
 
- Render: names (JA/EN), region, elevation.
-
- Add debounced search (names) + region dropdown filter.
-
- No writes; no toggles.
-
-Testing checklist
-
- Typing filters instantly (client-only).
-
- No network requests on keystrokes (uses preloaded list).
+- Testing checklist
+ 
+- [x] Typing filters instantly (client-only).
+- [x] No network requests on keystrokes (uses preloaded list).
 
 Acceptance
 
- Fast, read-only filtering works.
+- [x] Fast, read-only filtering works.
 
 T09 — Completion Toggle Plumbing (single write path)
 

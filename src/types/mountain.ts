@@ -18,3 +18,14 @@ export interface MountainWithCompletion {
   completed_at?: string;
   hiked_on?: string | null;
 }
+
+export interface CanonicalMountain {
+  id: string;
+  name_ja: string;
+  name_en: string;
+  name_zh: string;
+  region: string;
+  prefecture: string;
+  elevation_m: number;
+  difficulty: string | null;
+}
