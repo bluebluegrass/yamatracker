@@ -25,7 +25,7 @@ Use the following checklist to mark off each major task as you work through the 
 
 - [x] T11 – Placeholder region map + count overlays
 
- T12 – Dashboards (difficulty + altitude + total)
+- [x] T12 – Dashboards (difficulty + altitude + total)
 
  T13 – Consistency guard (dev‑only)
 
