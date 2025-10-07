@@ -306,6 +306,8 @@ github.com
 
 T14 – Error, loading, and empty states
 
+- [x] Implemented: full tracker skeleton, toggle failure toast recovery, sidebar empty-state messaging, manual throttling checks.
+
 Skeleton loading states – When fetching aggregates or the mountain list, render skeleton components (e.g. grey boxes or animated placeholders) until data arrives
 github.com
 .
@@ -323,6 +325,8 @@ github.com
 .
 
 T15 – Landing page MVP
+
+- [x] Implemented: new marketing landing component with hero, feature highlights, SVG visual preview, CTA links to tracker and sample profile.
 
 Create src/app/page.tsx – Design a simple landing page with a hero section (title and subtitle), two or three bullet points describing the value of the tracker, and clear call‑to‑action buttons (e.g. “View Tracker” and “See Demo Profile”).
 
@@ -342,6 +346,8 @@ github.com
 .
 
 T16 – Public profile V1 visuals (share card)
+
+- [x] Implemented: shareable profile card with copy link CTA, mini region matrix, difficulty/altitude stats, and private profile notice fallback.
 
 Card layout – Create a component that displays the user’s avatar, display name (or slug if absent), total climbed count, and a mini region matrix (similar to the placeholder map but much smaller)
 github.com
