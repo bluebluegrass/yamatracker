@@ -31,6 +31,8 @@ Use the following checklist to mark off each major task as you work through the 
 
 - [x] T14 – Error, loading, and empty states
 
+- [x] T15 – Landing page MVP
+
  T14 – Error, loading, and empty states
 
  T15 – Landing page MVP
