@@ -1,8 +1,6 @@
 import { Fragment } from 'react';
-import Image from 'next/image';
 import type { DashboardSnapshot, RegionStat, DifficultyStat, AltitudeStat } from '@/types/dashboard';
 import { TrackerTotalsCard } from './TrackerTotalsCard';
-import japanMap from '@/../public/japan_map.svg';
 
 type BreakdownProps<T> = {
   title: string;
@@ -124,9 +122,6 @@ export function TrackerDashboard({ snapshot }: TrackerDashboardProps) {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Completed IDs</h2>
           <p className="mt-4 text-xs text-gray-500">{snapshot.completed_ids.length} mountains tracked.</p>
         </div>
-      </div>
-      <div className="my-8 flex justify-center">
-        <Image src={japanMap} alt="Japan Map" className="h-auto w-full max-w-xl" priority />
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
         <RegionBreakdown stats={snapshot.by_region} />

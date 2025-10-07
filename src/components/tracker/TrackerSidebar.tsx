@@ -12,11 +12,19 @@ type TrackerSidebarProps = {
   completedIds: readonly string[];
   pendingIds?: readonly string[];
   onToggle?: (mountainId: string) => void;
+  activeRegion?: string;
+  onRegionChange?: (region?: string) => void;
 };
 
-export function TrackerSidebar({ mountains, completedIds, pendingIds = [], onToggle }: TrackerSidebarProps) {
+export function TrackerSidebar({
+  mountains,
+  completedIds,
+  pendingIds = [],
+  onToggle,
+  activeRegion,
+  onRegionChange,
+}: TrackerSidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRegion, setSelectedRegion] = useState<string>('all');
 
   const deferredSearch = useDeferredValue(searchTerm);
 
@@ -34,6 +42,7 @@ export function TrackerSidebar({ mountains, completedIds, pendingIds = [], onTog
   }, [mountains]);
 
   const filteredMountains = useMemo(() => {
+    const selectedRegion = activeRegion ?? 'all';
     const term = deferredSearch.trim().toLowerCase();
     return mountains.filter((mountain) => {
       if (selectedRegion !== 'all' && mountain.region !== selectedRegion) {
@@ -50,7 +59,7 @@ export function TrackerSidebar({ mountains, completedIds, pendingIds = [], onTog
 
       return haystack.some((value) => value.includes(term));
     });
-  }, [mountains, deferredSearch, selectedRegion]);
+  }, [activeRegion, deferredSearch, mountains]);
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -77,8 +86,15 @@ export function TrackerSidebar({ mountains, completedIds, pendingIds = [], onTog
         <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
           Region
           <select
-            value={selectedRegion}
-            onChange={(event) => setSelectedRegion(event.target.value)}
+            value={activeRegion ?? 'all'}
+            onChange={(event) => {
+              const value = event.target.value;
+              if (value === 'all') {
+                onRegionChange?.(undefined);
+              } else {
+                onRegionChange?.(value);
+              }
+            }}
             className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
             {regions.map((region) => (
