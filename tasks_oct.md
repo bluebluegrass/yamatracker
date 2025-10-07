@@ -27,7 +27,9 @@ Use the following checklist to mark off each major task as you work through the 
 
 - [x] T12 – Dashboards (difficulty + altitude + total)
 
- T13 – Consistency guard (dev‑only)
+- [x] T13 – Consistency guard (dev‑only)
+
+- [x] T14 – Error, loading, and empty states
 
  T14 – Error, loading, and empty states
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { TrackerSidebar } from './TrackerSidebar';
 import { TrackerDashboard } from './TrackerDashboard';
 import type { CanonicalMountain } from '@/types/mountain';
@@ -13,9 +13,19 @@ import {
   type RegionCounts,
   type RegionId,
 } from './RegionProgressMap';
+import { TrackerLoadingSkeleton } from './TrackerLoadingSkeleton';
+
+const IS_DEV = process.env.NODE_ENV !== 'production';
 
 function isRegionId(value: string): value is RegionId {
   return (ALL_REGION_IDS as readonly string[]).includes(value as RegionId);
+}
+
+function createEmptyRegionCounts(): RegionCounts {
+  return ALL_REGION_IDS.reduce<RegionCounts>((acc, region) => {
+    acc[region] = { completed: 0, total: 0 };
+    return acc;
+  }, {} as RegionCounts);
 }
 
 type TrackerExperienceProps = {
@@ -30,6 +40,7 @@ export function TrackerExperience({ locale, mountains, initialSnapshot }: Tracke
   const [completedIds, setCompletedIds] = useState<string[]>(() => initialSnapshot?.completed_ids ?? []);
   const [pendingIds, setPendingIds] = useState<string[]>([]);
   const [activeRegion, setActiveRegion] = useState<RegionId | undefined>(undefined);
+  const [consistencyIssues, setConsistencyIssues] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
 
   const completedCount = snapshot?.completed ?? completedIds.length;
@@ -45,22 +56,8 @@ export function TrackerExperience({ locale, mountains, initialSnapshot }: Tracke
     return map;
   }, [mountains]);
 
-  const regionCounts: RegionCounts = useMemo(() => {
-    if (snapshot?.by_region?.length) {
-      return ALL_REGION_IDS.reduce<RegionCounts>((acc, region) => {
-        const stat = snapshot.by_region.find((entry) => entry.region === region);
-        acc[region] = {
-          completed: stat?.completed ?? 0,
-          total: stat?.total ?? 0,
-        };
-        return acc;
-      }, {} as RegionCounts);
-    }
-
-    const counts = ALL_REGION_IDS.reduce<RegionCounts>((acc, region) => {
-      acc[region] = { completed: 0, total: 0 };
-      return acc;
-    }, {} as RegionCounts);
+  const localRegionCounts: RegionCounts = useMemo(() => {
+    const counts = createEmptyRegionCounts();
 
     mountains.forEach((mountain) => {
       if (!isRegionId(mountain.region)) {
@@ -78,7 +75,26 @@ export function TrackerExperience({ locale, mountains, initialSnapshot }: Tracke
     });
 
     return counts;
-  }, [completedIds, mountainById, mountains, snapshot?.by_region]);
+  }, [completedIds, mountainById, mountains]);
+
+  const regionCounts: RegionCounts = useMemo(() => {
+    if (snapshot?.by_region?.length) {
+      const counts = createEmptyRegionCounts();
+      snapshot.by_region.forEach((entry) => {
+        const region = entry.region as RegionId;
+        if (!isRegionId(region)) {
+          return;
+        }
+        counts[region] = {
+          completed: entry.completed ?? 0,
+          total: entry.total ?? 0,
+        };
+      });
+      return counts;
+    }
+
+    return localRegionCounts;
+  }, [localRegionCounts, snapshot]);
 
   const handleToggle = (mountainId: string) => {
     if (pendingSet.has(mountainId)) {
@@ -129,57 +145,137 @@ export function TrackerExperience({ locale, mountains, initialSnapshot }: Tracke
     setActiveRegion(region);
   };
 
-  return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row">
-      <aside className="lg:w-80">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <TrackerSidebar
-            mountains={mountains}
-            completedIds={sidebarCompletedIds}
-            pendingIds={sidebarPendingIds}
-            onToggle={handleToggle}
-            activeRegion={activeRegion}
-            onRegionChange={handleSidebarRegionChange}
-          />
-        </div>
-      </aside>
+  const showInitialSkeleton = mountains.length === 0 && snapshot === null;
+  const showSnapshotWarning = !snapshot && mountains.length > 0;
 
-      <section className="flex-1 space-y-6">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Map</div>
-              <p className="mt-2 text-sm text-slate-600">
-                Click a region on the map (or use the legend) to filter the sidebar and focus your progress.
-              </p>
-            </div>
-            <span className="text-xs font-medium text-slate-500">
-              {completedCount}/{totalCount} complete
-            </span>
-          </div>
-          <div className="mt-4">
-            <RegionProgressMap
-              regionCounts={regionCounts}
+  useEffect(() => {
+    if (!IS_DEV) {
+      return;
+    }
+
+    if (pendingIds.length > 0) {
+      setConsistencyIssues((prev) => (prev.length === 0 ? prev : []));
+      return;
+    }
+
+    const issues: string[] = [];
+    const localCompleted = completedIds.length;
+    const aggregatedCompleted =
+      snapshot?.completed ??
+      ALL_REGION_IDS.reduce((sum, region) => sum + (regionCounts[region]?.completed ?? 0), 0);
+
+    if (aggregatedCompleted !== localCompleted) {
+      issues.push(
+        `Sidebar shows ${localCompleted} completed, but aggregates report ${aggregatedCompleted}.`
+      );
+    }
+
+    ALL_REGION_IDS.forEach((region) => {
+      const aggregated = regionCounts[region] ?? { completed: 0, total: 0 };
+      const local = localRegionCounts[region] ?? { completed: 0, total: 0 };
+
+      if (aggregated.completed !== local.completed) {
+        issues.push(
+          `${region}: aggregate completed (${aggregated.completed}) does not match sidebar data (${local.completed}).`
+        );
+      }
+
+      if (aggregated.total !== local.total) {
+        issues.push(
+          `${region}: aggregate total (${aggregated.total}) does not match canonical list (${local.total}).`
+        );
+      }
+    });
+
+    setConsistencyIssues((prev) => {
+      const unchanged =
+        prev.length === issues.length && prev.every((value, index) => value === issues[index]);
+      return unchanged ? prev : issues;
+    });
+
+    if (issues.length > 0) {
+      console.warn('[tracker-consistency]', issues);
+    }
+  }, [completedIds, localRegionCounts, pendingIds, regionCounts, snapshot?.completed]);
+
+  if (showInitialSkeleton) {
+    return <TrackerLoadingSkeleton />;
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-6xl">
+      {IS_DEV && consistencyIssues.length > 0 && (
+        <div className="mb-6 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+          <p className="font-semibold">Tracker consistency check</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {consistencyIssues.map((issue) => (
+              <li key={issue}>{issue}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {showSnapshotWarning && (
+        <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-semibold">Snapshot unavailable</p>
+          <p className="mt-1">
+            We couldn&apos;t load the latest dashboard snapshot. The sidebar still reflects your local selections,
+            but totals may be out of date. Try reloading the page after a moment.
+          </p>
+        </div>
+      )}
+
+      <div className="flex w-full flex-col gap-8 lg:flex-row">
+        <aside className="lg:w-80">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <TrackerSidebar
+              mountains={mountains}
+              completedIds={sidebarCompletedIds}
+              pendingIds={sidebarPendingIds}
+              onToggle={handleToggle}
               activeRegion={activeRegion}
-              onRegionChange={handleMapRegionChange}
+              onRegionChange={handleSidebarRegionChange}
             />
           </div>
-        </div>
+        </aside>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Dashboards</div>
-            {isPending && <span className="text-xs text-indigo-600">Syncing...</span>}
+        <section className="flex-1 space-y-6">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Map</div>
+                <p className="mt-2 text-sm text-slate-600">
+                  Click a region on the map (or use the legend) to filter the sidebar and focus your progress.
+                </p>
+              </div>
+              <span className="text-xs font-medium text-slate-500">
+                {completedCount}/{totalCount} complete
+              </span>
+            </div>
+            <div className="mt-4">
+              <RegionProgressMap
+                regionCounts={regionCounts}
+                activeRegion={activeRegion}
+                onRegionChange={handleMapRegionChange}
+              />
+            </div>
           </div>
-          <div className="mt-4 space-y-6">
-            {snapshot ? (
-              <TrackerDashboard snapshot={snapshot} />
-            ) : (
-              <div className="text-sm text-slate-500">No snapshot available.</div>
-            )}
+
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Dashboards</div>
+              {isPending && <span className="text-xs text-indigo-600">Syncing...</span>}
+            </div>
+            <div className="mt-4 space-y-6">
+              {snapshot ? (
+                <TrackerDashboard snapshot={snapshot} />
+              ) : (
+                <div className="text-sm text-slate-500">No snapshot available.</div>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }
