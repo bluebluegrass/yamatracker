@@ -33,6 +33,8 @@ Use the following checklist to mark off each major task as you work through the 
 
 - [x] T15 – Landing page MVP
 
+- [x] T16 – Public profile V1 visuals
+
  T14 – Error, loading, and empty states
 
  T15 – Landing page MVP
