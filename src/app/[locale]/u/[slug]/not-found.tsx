@@ -6,7 +6,7 @@ export default function PublicProfileNotFound() {
       <div className="max-w-md text-center space-y-4">
         <h1 className="text-3xl font-semibold text-gray-900">Profile not found</h1>
         <p className="text-gray-600">
-          We couldn't find a public profile for that slug. It might be private or does not exist yet.
+          We couldn&apos;t find a public profile for that slug. It might be private or does not exist yet.
         </p>
         <Link
           href="/"

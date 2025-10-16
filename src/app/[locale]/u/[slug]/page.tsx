@@ -59,36 +59,64 @@ const SAMPLE_PROFILE_FALLBACK: ProfileFetchResult = {
 type ProfileFetchResult =
   | { status: 'public'; profile: PublicProfile; aggregates: CompletionAggregates }
   | { status: 'private'; slug: string; displayName?: string | null }
-  | { status: 'missing' };
+  | { status: 'missing' }
+  | { status: 'error'; slug: string; message: string };
 
 const fetchProfileData = cache(async (slug: string): Promise<ProfileFetchResult> => {
-  const profile = await getPublicProfile(supabaseAdmin, slug);
-  if (profile) {
-    const aggregates = await getAggregatesBySlug(supabaseAdmin, slug);
-    if (!aggregates) {
+  try {
+    const profile = await getPublicProfile(supabaseAdmin, slug);
+    if (profile) {
+      try {
+        const aggregates = await getAggregatesBySlug(supabaseAdmin, slug);
+        if (!aggregates) {
+          return { status: 'missing' };
+        }
+        return { status: 'public', profile, aggregates };
+      } catch (error) {
+        console.error('[public-profile] Failed to load aggregates', { slug, error });
+        return {
+          status: 'error',
+          slug,
+          message: 'We could not load this profile’s completion stats. Please try again shortly.',
+        };
+      }
+    }
+  } catch (error) {
+    console.error('[public-profile] Failed to load profile', { slug, error });
+    return {
+      status: 'error',
+      slug,
+      message: 'We could not reach the profile service. Check your Supabase credentials or network connection.',
+    };
+  }
+
+  try {
+    const { data: privateRow } = await supabaseAdmin
+      .from('users')
+      .select('slug, display_name, is_public')
+      .eq('slug', slug)
+      .maybeSingle();
+
+    if (!privateRow) {
+      if (slug === SAMPLE_PROFILE_SLUG) {
+        return SAMPLE_PROFILE_FALLBACK;
+      }
       return { status: 'missing' };
     }
-    return { status: 'public', profile, aggregates };
-  }
 
-  const { data: privateRow } = await supabaseAdmin
-    .from('users')
-    .select('slug, display_name, is_public')
-    .eq('slug', slug)
-    .maybeSingle();
-
-  if (!privateRow) {
-    if (slug === SAMPLE_PROFILE_SLUG) {
-      return SAMPLE_PROFILE_FALLBACK;
+    if (privateRow.is_public === false) {
+      return {
+        status: 'private',
+        slug: privateRow.slug,
+        displayName: privateRow.display_name,
+      };
     }
-    return { status: 'missing' };
-  }
-
-  if (privateRow.is_public === false) {
+  } catch (error) {
+    console.error('[public-profile] Failed to query users table', { slug, error });
     return {
-      status: 'private',
-      slug: privateRow.slug,
-      displayName: privateRow.display_name,
+      status: 'error',
+      slug,
+      message: 'We could not verify whether this profile is public. Supabase may be unreachable.',
     };
   }
 
@@ -127,9 +155,9 @@ export async function generateMetadata({ params }: { params: PageParams | Promis
   const { slug } = await resolveParams(params);
   const data = await fetchProfileData(slug);
 
-  if (data.status === 'missing') {
+  if (data.status === 'missing' || data.status === 'error') {
     return {
-      title: 'Profile Not Found',
+      title: 'Profile Unavailable',
     };
   }
 
@@ -167,6 +195,32 @@ export default async function PublicProfilePage({ params }: { params: PageParams
     notFound();
   }
 
+  if (data.status === 'error') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="mx-auto max-w-3xl px-4 py-20 text-center">
+          <h1 className="text-3xl font-semibold text-gray-900">Profile temporarily unavailable</h1>
+          <p className="mt-3 text-sm text-gray-600">
+            {data.message}
+          </p>
+          <p className="mt-2 text-sm text-gray-500">
+            If you are running the app locally, double-check your Supabase credentials and ensure the database is reachable.
+          </p>
+          {data.slug === SAMPLE_PROFILE_SLUG && (
+            <div className="mt-8">
+              <PublicProfileShareCard
+                profile={SAMPLE_PROFILE_FALLBACK.profile}
+                aggregates={SAMPLE_PROFILE_FALLBACK.aggregates}
+                shareUrl={`http://localhost:3000/en/u/${SAMPLE_PROFILE_SLUG}`}
+                joinedAtLabel={`Joined ${formatJoinDate(SAMPLE_PROFILE_FALLBACK.profile.createdAt)}`}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (data.status === 'private') {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -186,7 +240,6 @@ export default async function PublicProfilePage({ params }: { params: PageParams
   }
 
   const { profile, aggregates } = data;
-  const { completed, total } = getCompletionTotals(aggregates);
 
   const requestHeaders = headers();
   const protocol = requestHeaders.get('x-forwarded-proto') ?? 'http';

@@ -1,1 +1,2 @@
-Moved from root. Original file: setup-db.js
+// Legacy placeholder to preserve the original file path.
+// The actual implementation now lives at ../setup-db.js.

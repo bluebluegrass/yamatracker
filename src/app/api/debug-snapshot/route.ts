@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { getSnapshot } from '@/lib/supabase/api';
 import { handleApiError } from '@/lib/utils/apiError';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // ...existing code...
     const snapshot = await getSnapshot(supabaseAdmin);

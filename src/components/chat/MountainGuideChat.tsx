@@ -48,7 +48,17 @@ export default function MountainGuideChat({
   };
 
   // Quick filter chips state
-  const REGION_KEYS = ['北海道','東北','関東','中部','関西','中国','四国','九州'] as const;
+const REGION_KEYS = ['北海道','東北','関東','中部','関西','中国','四国','九州'] as const;
+const REGION_LABEL_MAP: Record<(typeof REGION_KEYS)[number], `regions.${(typeof REGION_KEYS)[number]}`> = {
+  北海道: 'regions.北海道',
+  東北: 'regions.東北',
+  関東: 'regions.関東',
+  中部: 'regions.中部',
+  関西: 'regions.関西',
+  中国: 'regions.中国',
+  四国: 'regions.四国',
+  九州: 'regions.九州',
+};
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const toggleRegion = (r: string) =>
     setSelectedRegions(prev => prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r]);
@@ -139,7 +149,7 @@ export default function MountainGuideChat({
         content: lines.length ? `Here are some options:\n${lines.join('\n')}` : 'I could not find a good match. Try adjusting your preferences.',
       };
       setMessages(prev => [...prev, assistantMsg]);
-    } catch (e) {
+    } catch {
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);
@@ -173,7 +183,7 @@ export default function MountainGuideChat({
                 onClick={() => toggleRegion(rk)}
                 className={`px-2 py-1 rounded-full text-xs border ${selectedRegions.includes(rk) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300'}`}
               >
-                {t?.(`regions.${rk}` as any) ?? rk}
+                {t ? t(REGION_LABEL_MAP[rk]) : rk}
               </button>
             ))}
           </div>

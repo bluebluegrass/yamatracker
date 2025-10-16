@@ -1,6 +1,7 @@
 'use client';
 
-import type { KeyboardEvent } from 'react';
+import { useState } from 'react';
+import type { FocusEvent, KeyboardEvent } from 'react';
 import { REGION_SHAPES } from './region-map-shapes';
 
 const REGION_IDS = [
@@ -41,6 +42,17 @@ const REGION_COLORS: Record<RegionId, string> = {
   Kyushu: '#94a3b8',
 };
 
+const REGION_LABEL_POSITIONS: Record<RegionId, { x: number; y: number }> = {
+  Hokkaido: { x: 465, y: 140 },
+  Tohoku: { x: 380, y: 240 },
+  Kanto: { x: 400, y: 320 },
+  Chubu: { x: 335, y: 380 },
+  Kansai: { x: 290, y: 430 },
+  Chugoku: { x: 235, y: 420 },
+  Shikoku: { x: 245, y: 520 },
+  Kyushu: { x: 180, y: 600 },
+};
+
 function resolveFillOpacity(completed: number, total: number) {
   if (total <= 0) {
     return 0.18;
@@ -62,6 +74,8 @@ function handleKeyActivate(event: KeyboardEvent<SVGElement>, action: () => void)
 }
 
 export function RegionProgressMap({ regionCounts, activeRegion, onRegionChange }: RegionProgressMapProps) {
+  const [focusedRegion, setFocusedRegion] = useState<RegionId | null>(null);
+
   const handleToggle = (region: RegionId) => {
     if (!onRegionChange) {
       return;
@@ -71,6 +85,14 @@ export function RegionProgressMap({ regionCounts, activeRegion, onRegionChange }
     } else {
       onRegionChange(region);
     }
+  };
+
+  const handleFocus = (_event: FocusEvent<SVGGElement>, region: RegionId) => {
+    setFocusedRegion(region);
+  };
+
+  const handleBlur = (_event: FocusEvent<SVGGElement>, region: RegionId) => {
+    setFocusedRegion((prev) => (prev === region ? null : prev));
   };
 
   const allTotalsZero = REGION_IDS.every((region) => (regionCounts[region]?.total ?? 0) === 0);
@@ -92,8 +114,13 @@ export function RegionProgressMap({ regionCounts, activeRegion, onRegionChange }
             const stats = regionCounts[region] ?? { completed: 0, total: 0 };
             const opacity = resolveFillOpacity(stats.completed, stats.total);
             const isActive = activeRegion === region;
-            const strokeColor = isActive ? '#1e3a8a' : 'rgba(15, 23, 42, 0.35)';
-            const strokeWidth = isActive ? 6 : 3;
+            const isFocused = focusedRegion === region;
+            const strokeColor = isActive
+              ? '#1e3a8a'
+              : isFocused
+                ? '#1d4ed8'
+                : 'rgba(15, 23, 42, 0.35)';
+            const strokeWidth = isActive || isFocused ? 6 : 3;
 
             return (
               <g
@@ -104,7 +131,11 @@ export function RegionProgressMap({ regionCounts, activeRegion, onRegionChange }
                 aria-label={formatLabel(region, stats.completed, stats.total)}
                 onClick={() => handleToggle(region)}
                 onKeyDown={(event) => handleKeyActivate(event, () => handleToggle(region))}
+                onFocus={(event) => handleFocus(event, region)}
+                onBlur={(event) => handleBlur(event, region)}
                 style={{ cursor: onRegionChange ? 'pointer' : 'default' }}
+                className="outline-none focus-visible:outline-none"
+                data-region={region}
               >
                 <title>{formatLabel(region, stats.completed, stats.total)}</title>
                 {paths.map((d, index) => (
@@ -121,6 +152,27 @@ export function RegionProgressMap({ regionCounts, activeRegion, onRegionChange }
                   />
                 ))}
               </g>
+            );
+          })}
+          {REGION_IDS.map((region) => {
+            const stats = regionCounts[region] ?? { completed: 0, total: 0 };
+            const position = REGION_LABEL_POSITIONS[region];
+            return (
+              <text
+                key={`${region}-label`}
+                x={position.x}
+                y={position.y}
+                fill="#0f172a"
+                fontSize="20"
+                fontWeight="700"
+                textAnchor="middle"
+                aria-hidden="true"
+                stroke="#f8fafc"
+                strokeWidth="4"
+                paintOrder="stroke"
+              >
+                {stats.completed}/{stats.total}
+              </text>
             );
           })}
         </svg>

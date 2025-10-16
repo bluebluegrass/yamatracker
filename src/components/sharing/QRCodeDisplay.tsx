@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import QRCode from 'qrcode';
 
 interface QRCodeDisplayProps {
@@ -60,11 +61,13 @@ export default function QRCodeDisplay({ url, size = 200 }: QRCodeDisplayProps) {
 
   return (
     <div className="text-center">
-      <img 
-        src={qrCodeDataUrl} 
-        alt="QR Code for profile" 
+      <Image
+        src={qrCodeDataUrl}
+        alt="QR Code for profile"
+        width={size}
+        height={size}
+        unoptimized
         className="mx-auto border border-gray-200 rounded-lg"
-        style={{ width: size, height: size }}
       />
       <p className="text-sm text-gray-600 mt-2">
         Scan to visit profile

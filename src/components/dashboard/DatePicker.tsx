@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { formatDateLocalized } from '@/lib/date';
 
 interface DatePickerProps {
   mountainId: string;
@@ -98,53 +97,35 @@ export default function DatePicker({ mountainId, mountainName, currentDate, onSa
         </div>
         
         <div className="flex gap-2">
-          <span
+          <button
+            type="button"
             onClick={handleSave}
-            className={`flex-1 px-3 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 cursor-pointer text-center ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            role="button"
-            tabIndex={0}
+            className={`flex-1 px-3 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 text-center ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             aria-label={`${t('save')} ${t('hikedOn')} ${mountainName}`}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                if (!isLoading) handleSave(e as any);
-              }
-            }}
+            disabled={isLoading}
           >
             {isLoading ? '...' : t('save')}
-          </span>
+          </button>
           
-          <span
+          <button
+            type="button"
             onClick={handleClear}
-            className={`px-3 py-2 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 cursor-pointer text-center ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            role="button"
-            tabIndex={0}
+            className={`px-3 py-2 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 text-center ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             aria-label={`${t('clear')} ${t('hikedOn')} ${mountainName}`}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                if (!isLoading) handleClear(e as any);
-              }
-            }}
+            disabled={isLoading}
           >
             {t('clear')}
-          </span>
+          </button>
           
-          <span
+          <button
+            type="button"
             onClick={handleCancel}
-            className={`px-3 py-2 border border-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-50 cursor-pointer text-center ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            role="button"
-            tabIndex={0}
+            className={`px-3 py-2 border border-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-50 text-center ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             aria-label="Cancel date picker"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                if (!isLoading) handleCancel(e as any);
-              }
-            }}
+            disabled={isLoading}
           >
             Cancel
-          </span>
+          </button>
         </div>
       </div>
     </div>

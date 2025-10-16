@@ -1,6 +1,7 @@
 'use client';
 
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import type { CanonicalMountain } from '@/types/mountain';
 
 const altitudeFormatter = new Intl.NumberFormat('en', {
@@ -60,6 +61,69 @@ export function TrackerSidebar({
       return haystack.some((value) => value.includes(term));
     });
   }, [activeRegion, deferredSearch, mountains]);
+
+  const checkboxRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+  const focusOrder = useMemo(() => filteredMountains.map((mountain) => mountain.id), [filteredMountains]);
+
+  const focusByOffset = (currentId: string, offset: number) => {
+    if (focusOrder.length === 0) {
+      return;
+    }
+    const currentIndex = focusOrder.indexOf(currentId);
+    if (currentIndex === -1) {
+      return;
+    }
+    let nextIndex = currentIndex + offset;
+    if (nextIndex < 0) {
+      nextIndex = focusOrder.length - 1;
+    } else if (nextIndex >= focusOrder.length) {
+      nextIndex = 0;
+    }
+    const nextId = focusOrder[nextIndex];
+    const nextCheckbox = checkboxRefs.current.get(nextId);
+    nextCheckbox?.focus();
+  };
+
+  const focusFirst = () => {
+    if (focusOrder.length === 0) {
+      return;
+    }
+    const firstCheckbox = checkboxRefs.current.get(focusOrder[0]);
+    firstCheckbox?.focus();
+  };
+
+  const focusLast = () => {
+    if (focusOrder.length === 0) {
+      return;
+    }
+    const lastCheckbox = checkboxRefs.current.get(focusOrder[focusOrder.length - 1]);
+    lastCheckbox?.focus();
+  };
+
+  const handleCheckboxKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>, mountainId: string) => {
+    switch (event.key) {
+      case 'ArrowDown':
+      case 'ArrowRight':
+        event.preventDefault();
+        focusByOffset(mountainId, 1);
+        break;
+      case 'ArrowUp':
+      case 'ArrowLeft':
+        event.preventDefault();
+        focusByOffset(mountainId, -1);
+        break;
+      case 'Home':
+        event.preventDefault();
+        focusFirst();
+        break;
+      case 'End':
+        event.preventDefault();
+        focusLast();
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -127,6 +191,14 @@ export function TrackerSidebar({
                       checked={isCompleted}
                       disabled={isPending || !onToggle}
                       onChange={() => onToggle?.(mountain.id)}
+                      onKeyDown={(event) => handleCheckboxKeyDown(event, mountain.id)}
+                      ref={(node) => {
+                        if (node) {
+                          checkboxRefs.current.set(mountain.id, node);
+                        } else {
+                          checkboxRefs.current.delete(mountain.id);
+                        }
+                      }}
                     />
                     <div>
                       <div className="text-sm font-semibold text-slate-900">{mountain.name_en}</div>

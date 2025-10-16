@@ -51,7 +51,7 @@ export function useMountainCompletions() {
     };
 
     loadCompletedMountains();
-  }, [user]);
+  }, [user, addToast]);
 
   const toggleMountain = async (mountainId: string) => {
     if (!user) {
@@ -163,6 +163,5 @@ export function useMountainCompletions() {
     getCompletionData,
   };
 }
-
 
 

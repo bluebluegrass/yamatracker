@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 /**
  * Simple Database Setup Script
  * Run this with: node setup-db.js
@@ -31,7 +33,7 @@ async function setupDatabase() {
   try {
     const schemaPath = path.join(__dirname, 'db', 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf-8');
-    
+
     console.log('📖 Read schema.sql successfully');
 
     // Split into individual statements
@@ -57,7 +59,7 @@ async function setupDatabase() {
           'Authorization': `Bearer ${serviceRoleKey}`,
           'apikey': serviceRoleKey
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           query: statement + ';'
         })
       });
@@ -75,13 +77,13 @@ async function setupDatabase() {
     }
 
     console.log('\n🎉 Database setup completed!');
-    
+ 
     // Test the setup
     console.log('\n🔍 Testing database connection...');
-    const { data, error } = await supabase.from('mountains').select('count').limit(1);
-    
-    if (error) {
-      console.log('⚠️  Could not test mountains table:', error.message);
+    const { error: testError } = await supabase.from('mountains').select('count').limit(1);
+
+    if (testError) {
+      console.log('⚠️  Could not test mountains table:', testError.message);
     } else {
       console.log('✅ Database connection successful!');
     }

@@ -30,7 +30,7 @@ export default function MountainDateDisplay({
     setShowDatePicker(false);
   };
 
-  const handleEditClick = (e: React.MouseEvent) => {
+  const handleEditClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation(); // Prevent mountain card toggle
     setShowDatePicker(true);
   };
@@ -54,38 +54,24 @@ export default function MountainDateDisplay({
       {hikedOn ? (
         <span>
           {t('hikedOn')} {formatDateLocalized(hikedOn, 'en')} •{' '}
-          <span
+          <button
+            type="button"
             onClick={handleEditClick}
             className="text-indigo-600 hover:text-indigo-500 underline cursor-pointer"
-            role="button"
-            tabIndex={0}
             aria-label={`${t('editDate')} ${mountainName}`}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleEditClick(e as any);
-              }
-            }}
           >
             {t('editDate')}
-          </span>
+          </button>
         </span>
       ) : (
-        <span
+        <button
+          type="button"
           onClick={handleEditClick}
           className="text-indigo-600 hover:text-indigo-500 underline cursor-pointer"
-          role="button"
-          tabIndex={0}
           aria-label={`${t('addDate')} ${mountainName}`}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleEditClick(e as any);
-            }
-          }}
         >
           {t('addDate')}
-        </span>
+        </button>
       )}
     </div>
   );

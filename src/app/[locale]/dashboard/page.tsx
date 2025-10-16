@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import {useTranslations} from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import MountainName from '@/components/dashboard/MountainName';
@@ -11,7 +11,6 @@ import BadgeDisplay from '@/components/dashboard/BadgeDisplay';
 import MountainDateDisplay from '@/components/dashboard/MountainDateDisplay';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import MountainGuideChat from '@/components/chat/MountainGuideChat';
-import { useLocale } from 'next-intl';
 import { ToastContainer } from '@/components/Toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useMountainCompletions } from '@/hooks/useMountainCompletions';
@@ -32,10 +31,16 @@ interface Mountain {
 
 export default function Dashboard() {
   const t = useTranslations();
-  const currentLocale = (typeof useLocale === 'function' ? useLocale() : 'en') as string;
-  const locale = (currentLocale === 'ja' || currentLocale === 'zh') ? currentLocale : 'en';
+  const rawLocale = useLocale();
+  const locale = rawLocale === 'ja' || rawLocale === 'zh' ? rawLocale : 'en';
   const { user, loading: authLoading } = useAuth();
-  const { completedIds, completionData, loading: mountainsLoading, toggleMountain, setCompletionDate, getCompletionData } = useMountainCompletions();
+  const {
+    completedIds,
+    loading: mountainsLoading,
+    toggleMountain,
+    setCompletionDate,
+    getCompletionData,
+  } = useMountainCompletions();
   const { toasts, removeToast, addToast } = useToast();
   const [userSlug, setUserSlug] = useState<string | null>(null);
   const [mountainsData, setMountainsData] = useState<Mountain[]>([]);
@@ -87,7 +92,7 @@ export default function Dashboard() {
         }
       } catch (err) {
         console.error('Error fetching mountains:', err);
-  addToast('Network error loading mountains', 'error', 3000);
+        addToast('Network error loading mountains', 'error', 3000);
       } finally {
         setMountainsDataLoading(false);
       }
@@ -296,9 +301,9 @@ export default function Dashboard() {
         className={`fixed bottom-24 right-6 w-[360px] h-[520px] z-50 ${showGuide ? '' : 'hidden'}`}
       >
         <MountainGuideChat
-          locale={locale as 'en' | 'ja' | 'zh'}
+          locale={locale}
           completedIds={completedIds}
-          mountains={mountainsData as any}
+          mountains={mountainsData}
           onClose={() => setShowGuide(false)}
         />
       </div>

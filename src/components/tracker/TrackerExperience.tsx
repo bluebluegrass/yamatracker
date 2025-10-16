@@ -32,9 +32,10 @@ type TrackerExperienceProps = {
   locale: string;
   mountains: CanonicalMountain[];
   initialSnapshot: DashboardSnapshot | null;
+  isAuthenticated: boolean;
 };
 
-export function TrackerExperience({ locale, mountains, initialSnapshot }: TrackerExperienceProps) {
+export function TrackerExperience({ locale, mountains, initialSnapshot, isAuthenticated }: TrackerExperienceProps) {
   const { addToast } = useToast();
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(initialSnapshot);
   const [completedIds, setCompletedIds] = useState<string[]>(() => initialSnapshot?.completed_ids ?? []);
@@ -98,6 +99,10 @@ export function TrackerExperience({ locale, mountains, initialSnapshot }: Tracke
 
   const handleToggle = (mountainId: string) => {
     if (pendingSet.has(mountainId)) {
+      return;
+    }
+    if (!isAuthenticated) {
+      addToast('Sign in to track your progress.', 'info', 3000);
       return;
     }
 
@@ -232,10 +237,15 @@ export function TrackerExperience({ locale, mountains, initialSnapshot }: Tracke
               mountains={mountains}
               completedIds={sidebarCompletedIds}
               pendingIds={sidebarPendingIds}
-              onToggle={handleToggle}
+              onToggle={isAuthenticated ? handleToggle : undefined}
               activeRegion={activeRegion}
               onRegionChange={handleSidebarRegionChange}
             />
+            {!isAuthenticated && (
+              <p className="mt-4 text-xs text-slate-500">
+                Create an account or sign in to mark mountains as completed.
+              </p>
+            )}
           </div>
         </aside>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
+import Image from 'next/image';
 import { ALL_REGION_IDS } from '@/components/tracker/RegionProgressMap';
 import type { CompletionAggregates } from '@/types/aggregates';
 import type { PublicProfile } from '@/types/profile';
@@ -89,9 +90,11 @@ export function PublicProfileShareCard({
         <div className="flex flex-1 flex-col items-center text-center lg:items-start lg:text-left">
           <div className="flex items-center gap-4">
             {profile.avatarUrl ? (
-              <img
+              <Image
                 src={profile.avatarUrl}
-                alt={`${profile.displayName}'s avatar`}
+                alt={`${(profile.displayName || profile.slug)}'s avatar`}
+                width={64}
+                height={64}
                 className="h-16 w-16 rounded-full border border-slate-200 object-cover"
               />
             ) : (
