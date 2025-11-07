@@ -18,6 +18,7 @@ CREATE TABLE mountains (
   name_zh TEXT NOT NULL,
   region TEXT NOT NULL,
   prefecture TEXT NOT NULL,
+  difficulty TEXT,
   elevation_m INTEGER NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -56,6 +57,7 @@ CREATE POLICY "Users manage their own check-ins" ON user_mountains
 CREATE INDEX idx_user_mountains_user_id ON user_mountains(user_id);
 CREATE INDEX idx_user_mountains_mountain_id ON user_mountains(mountain_id);
 CREATE INDEX idx_mountains_region ON mountains(region);
-
+CREATE INDEX idx_mountains_difficulty ON mountains(difficulty);
+CREATE INDEX idx_mountains_elevation_m ON mountains(elevation_m);
 
 

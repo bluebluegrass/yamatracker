@@ -30,6 +30,10 @@ export async function GET(request: NextRequest) {
       .select('mountain_id')
       .eq('user_id', user.id);
 
+    if (completionsError) {
+      return new Response('Failed to load completions', { status: 500 });
+    }
+
     const completedCount = completions?.length || 0;
     const progress = Math.round((completedCount / 100) * 100);
 
@@ -76,7 +80,7 @@ export async function GET(request: NextRequest) {
                 lineHeight: '1.2',
               }}
             >
-              {user.username}'s Mountain Journey
+              {user.username}&apos;s Mountain Journey
             </div>
 
             {/* Progress */}
@@ -199,7 +203,7 @@ export async function GET(request: NextRequest) {
                 textAlign: 'center',
               }}
             >
-              Japan's 100 Famous Mountains Tracker
+              Japan&apos;s 100 Famous Mountains Tracker
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 
@@ -27,7 +28,7 @@ export default function Login() {
       } else {
         router.push('/dashboard');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -93,18 +94,14 @@ export default function Login() {
           </div>
 
           <div className="text-center">
-            <a
-              href="/signup"
-              className="font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              Don't have an account? Sign up
-            </a>
+            <Link href="/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
+              Don&apos;t have an account? Sign up
+            </Link>
           </div>
         </form>
       </div>
     </div>
   );
 }
-
 
 

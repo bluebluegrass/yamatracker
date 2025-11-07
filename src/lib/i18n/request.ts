@@ -5,13 +5,13 @@ export default getRequestConfig(async ({locale}) => {
   if (!locale) {
     console.warn('Locale is undefined, using default locale "en"');
     return {
-      messages: (await import(`./messages/en.json`)).default,
+      messages: (await import(`@/lib/i18n/messages/en.json`)).default,
       locale: 'en'
     };
   }
   
   return {
-    messages: (await import(`./messages/${locale}.json`)).default,
+    messages: (await import(`@/lib/i18n/messages/${locale}.json`)).default,
     locale
   };
 });

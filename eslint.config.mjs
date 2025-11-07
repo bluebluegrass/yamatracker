@@ -22,10 +22,10 @@ const eslintConfig = [
   },
   {
     rules: {
-      "@next/next/no-html-link-for-pages": "warn",
-      "react/no-unescaped-entities": "warn",
-      "@typescript-eslint/no-unused-vars": "warn",
-      "@next/next/no-img-element": "warn",
+  "@next/next/no-html-link-for-pages": "error",
+  "react/no-unescaped-entities": "error",
+  "@typescript-eslint/no-unused-vars": "error",
+  "@next/next/no-img-element": "error",
     },
   },
 ];

@@ -8,6 +8,29 @@ select
   length(coalesce(m.difficulty, ''))::int as difficulty_int
 from mountains m;
 
+-- 1b) Altitude buckets for mountains
+create or replace view v_altitude_buckets as
+with buckets as (
+  select * from (values
+    ('lt_1000', '<1,000 m', null::integer, 1000),
+    ('1000_1999', '1,000 – 1,999 m', 1000, 2000),
+    ('2000_2999', '2,000 – 2,999 m', 2000, 3000),
+    ('gte_3000', '≥3,000 m', 3000, null::integer)
+  ) as b(bucket_id, bucket_label, min_elevation_m, max_elevation_m)
+)
+select
+  b.bucket_id,
+  b.bucket_label,
+  b.min_elevation_m,
+  b.max_elevation_m,
+  count(m.id)::int as total
+from buckets b
+left join mountains m
+  on (b.min_elevation_m is null or m.elevation_m >= b.min_elevation_m)
+ and (b.max_elevation_m is null or m.elevation_m < b.max_elevation_m)
+group by b.bucket_id, b.bucket_label, b.min_elevation_m, b.max_elevation_m
+order by b.min_elevation_m nulls first;
+
 -- 2) The snapshot for the currently authenticated user
 create or replace function dashboard_snapshot(p_user_id uuid default null)
 returns jsonb
@@ -22,6 +45,7 @@ declare
   _completed_ids jsonb;
   _by_region jsonb;
   _by_difficulty jsonb;
+  _by_altitude jsonb;
   _badges jsonb;
 begin
   select count(*) into _total from mountains;
@@ -72,6 +96,31 @@ begin
     group by vm.difficulty_int
   ) c on c.difficulty_int = d.difficulty_int;
 
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'bucket_id', b.bucket_id,
+           'label', b.bucket_label,
+           'min', b.min_elevation_m,
+           'max', b.max_elevation_m,
+           'total', b.total,
+           'completed', coalesce(c.completed, 0)
+         ) order by b.min_elevation_m nulls first), '[]'::jsonb)
+  into _by_altitude
+  from v_altitude_buckets b
+  left join (
+    select
+      case
+        when m.elevation_m < 1000 then 'lt_1000'
+        when m.elevation_m >= 1000 and m.elevation_m < 2000 then '1000_1999'
+        when m.elevation_m >= 2000 and m.elevation_m < 3000 then '2000_2999'
+        else 'gte_3000'
+      end as bucket_id,
+      count(*)::int as completed
+    from user_mountains um
+    join mountains m on m.id = um.mountain_id
+    where um.user_id = uid
+    group by 1
+  ) c on c.bucket_id = b.bucket_id;
+
   -- Simple badge logic; keep server-side for determinism
   _badges := '[]'::jsonb;
   if _completed >= 1  then _badges := _badges || jsonb_build_object('key','first_step'); end if;
@@ -90,6 +139,7 @@ begin
     'completed_ids', _completed_ids,
     'by_region', _by_region,
     'by_difficulty', _by_difficulty,
+    'by_altitude', _by_altitude,
     'badges', _badges
   );
 end $$;

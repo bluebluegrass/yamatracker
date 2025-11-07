@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
+import { handleApiError } from '@/lib/utils/apiError';
 
 // Lightweight types (kept local to the route to avoid cross-file churn)
 type ChatMessage = { role: 'user' | 'assistant' | 'system'; content: string };
@@ -7,12 +8,6 @@ type Preferences = {
   regions?: string[]; // e.g., ['関東']
   difficulty?: string[]; // e.g., ['★','★★']
   season?: 'spring' | 'summer' | 'autumn' | 'winter' | null;
-};
-type ChatRequest = {
-  locale: 'en' | 'ja' | 'zh';
-  completed_ids?: string[];
-  preferences?: Preferences;
-  messages: ChatMessage[];
 };
 
 type MountainCandidate = {
@@ -78,6 +73,10 @@ function hashString(s: string): number {
     h |= 0; // 32-bit
   }
   return h;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 async function getCandidates(
@@ -276,7 +275,7 @@ function buildUserPrompt(
   return [{ role: 'user' as const, content }];
 }
 
-function inferHeuristicsFromText(text: string): { nearTokyo?: boolean; season?: 'spring' | 'summer' | 'autumn' | 'winter'; difficultyStars?: string[]; regions?: string[] } {
+function inferHeuristicsFromText(text: string): { nearTokyo?: boolean; nearOsaka?: boolean; season?: 'spring' | 'summer' | 'autumn' | 'winter'; difficultyStars?: string[]; regions?: string[] } {
   const t = (text || '').toLowerCase();
   const nearTokyo = /新宿|東京|tokyo|shinjuku/.test(t) && /(3\s*个?小时|3\s*hours|三小时)/.test(t);
   const nearOsaka = /大阪|osaka/.test(t) && /(新干线|shinkansen|新幹線)/.test(t);
@@ -344,22 +343,35 @@ type ModelResponse = { suggestions?: ModelSuggestion[]; followups?: string[]; di
 function safeParseModel(content: string): ModelResponse | null {
   try {
     const parsed = JSON.parse(content);
-    if (!parsed || typeof parsed !== 'object') return null;
-    const suggestionsRaw = Array.isArray((parsed as any).suggestions) ? (parsed as any).suggestions : [];
-    const suggestions: ModelSuggestion[] = [];
-    for (const s of suggestionsRaw) {
-      if (!s || typeof s !== 'object') continue;
-      const id = typeof (s as any).mountain_id === 'string' ? (s as any).mountain_id.slice(0, 32) : null;
-      if (!id) continue;
-      const title = typeof (s as any).title === 'string' ? (s as any).title.slice(0, 120) : undefined;
-      const reason = typeof (s as any).reason === 'string' ? (s as any).reason.slice(0, 600) : undefined;
-      suggestions.push({ mountain_id: id, title, reason });
-      if (suggestions.length >= 3) break;
+    if (!isPlainObject(parsed)) {
+      return null;
     }
-    const followups = Array.isArray((parsed as any).followups)
-      ? (parsed as any).followups.filter((x: any) => typeof x === 'string').slice(0, 5)
+
+    const rawSuggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
+    const suggestions: ModelSuggestion[] = [];
+    for (const candidate of rawSuggestions) {
+      if (!isPlainObject(candidate)) {
+        continue;
+      }
+      const rawId = candidate.mountain_id;
+      if (typeof rawId !== 'string') {
+        continue;
+      }
+      const truncatedId = rawId.slice(0, 32);
+      const title = typeof candidate.title === 'string' ? candidate.title.slice(0, 120) : undefined;
+      const reason = typeof candidate.reason === 'string' ? candidate.reason.slice(0, 600) : undefined;
+      suggestions.push({ mountain_id: truncatedId, title, reason });
+      if (suggestions.length >= 3) {
+        break;
+      }
+    }
+
+    const followups = Array.isArray(parsed.followups)
+      ? parsed.followups.filter((value): value is string => typeof value === 'string').slice(0, 5)
       : undefined;
-    const disclaimer = typeof (parsed as any).disclaimer === 'string' ? (parsed as any).disclaimer.slice(0, 200) : undefined;
+    const disclaimer =
+      typeof parsed.disclaimer === 'string' ? parsed.disclaimer.slice(0, 200) : undefined;
+
     return { suggestions, followups, disclaimer };
   } catch {
     return null;
@@ -390,80 +402,85 @@ function validateArrayOfStrings(x: unknown, maxItems = 50, maxLen = 64): string[
 function validateMessages(x: unknown, maxItems = 10, maxLen = 1000): ChatMessage[] | null {
   if (!Array.isArray(x)) return null;
   const out: ChatMessage[] = [];
-  for (const m of x) {
-    if (!m || typeof m !== 'object') continue;
-    const role = (m as any).role;
-    const content = clampString((m as any).content, maxLen);
-    if (!content) continue;
-    if (role !== 'user' && role !== 'assistant' && role !== 'system') continue;
+  for (const entry of x) {
+    if (!isPlainObject(entry)) {
+      continue;
+    }
+    const role = entry.role;
+    const content = clampString(entry.content, maxLen);
+    if (!content) {
+      continue;
+    }
+    if (role !== 'user' && role !== 'assistant' && role !== 'system') {
+      continue;
+    }
     out.push({ role, content });
-    if (out.length >= maxItems) break;
+    if (out.length >= maxItems) {
+      break;
+    }
   }
   return out.length ? out : null;
 }
 
 function validatePreferences(x: unknown): Preferences | undefined {
-  if (!x || typeof x !== 'object') return undefined;
-  const regions = validateArrayOfStrings((x as any).regions, 8, 32) ?? undefined;
-  const difficultyRaw = validateArrayOfStrings((x as any).difficulty, 4, 4) ?? undefined;
+  if (!isPlainObject(x)) {
+    return undefined;
+  }
+  const regions = validateArrayOfStrings(x.regions, 8, 32) ?? undefined;
+  const difficultyRaw = validateArrayOfStrings(x.difficulty, 4, 4) ?? undefined;
   const allowedStars = new Set(['★', '★★', '★★★', '★★★★', '★★★★★']);
   const difficulty = difficultyRaw?.filter((d) => allowedStars.has(d)) ?? undefined;
-  const season = ((): Preferences['season'] => {
-    const val = (x as any).season;
-    return val === 'spring' || val === 'summer' || val === 'autumn' || val === 'winter' || val === null
-      ? val
+  const seasonValue = x.season;
+  const season =
+    seasonValue === 'spring' ||
+    seasonValue === 'summer' ||
+    seasonValue === 'autumn' ||
+    seasonValue === 'winter' ||
+    seasonValue === null
+      ? seasonValue
       : undefined;
-  })();
   return { regions, difficulty, season };
 }
 
 // POST /api/chat — scaffold only (no OpenAI call yet)
 export async function POST(request: NextRequest) {
   const started = Date.now();
-  // Server-only env guard
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    logEvent({ status: 'error:no_api_key', ip: getClientIp(request), duration_ms: Date.now() - started });
-    return NextResponse.json(
-      { success: false, error: 'Server missing OPENAI_API_KEY' },
-      { status: 500 }
-    );
-  }
-
-  // Parse body (no validation yet — added in next step)
-  let body: unknown = null;
   try {
-    body = await request.json();
-  } catch {
-    // Ignore parse errors; respond with 400 below
-  }
+    // Server-only env guard
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      logEvent({ status: 'error:no_api_key', ip: getClientIp(request), duration_ms: Date.now() - started });
+      return handleApiError('Server missing OPENAI_API_KEY', 500);
+    }
 
-  // Input validation (minimal, dependency-free)
-  const locale = isLocale((body as any)?.locale) ? (body as any).locale : 'en';
-  const messages = validateMessages((body as any)?.messages);
-  if (!messages) {
-    logEvent({ status: 'error:invalid_messages', ip: getClientIp(request), duration_ms: Date.now() - started });
-    return NextResponse.json(
-      { success: false, error: 'Invalid messages' },
-      { status: 400 }
-    );
-  }
-  const completed_ids = validateArrayOfStrings((body as any)?.completed_ids, 200, 32) ?? [];
-  const preferences = validatePreferences((body as any)?.preferences);
+    // Parse body (no validation yet — added in next step)
+    let body: unknown = null;
+    try {
+      body = await request.json();
+    } catch {
+      // Ignore parse errors; respond with 400 below
+    }
 
-  // Rate limiting (per IP for MVP)
-  const ip = getClientIp(request);
-  const rl = rateLimitCheck(`ip:${ip}`);
-  if (!rl.allowed) {
-    logEvent({ status: 'error:rate_limited', ip, locale, completed_ids_length: completed_ids.length, duration_ms: Date.now() - started });
-    return NextResponse.json(
-      { success: false, error: 'Rate limit exceeded. Please try again shortly.' },
-      { status: 429, headers: { 'Retry-After': Math.ceil(rl.resetMs / 1000).toString() } }
-    );
-  }
+    // Input validation (minimal, dependency-free)
+    const bodyObject: Record<string, unknown> = isPlainObject(body) ? body : {};
+    const locale = isLocale(bodyObject.locale) ? bodyObject.locale : 'en';
+    const messages = validateMessages(bodyObject.messages);
+    if (!messages) {
+      logEvent({ status: 'error:invalid_messages', ip: getClientIp(request), duration_ms: Date.now() - started });
+      return handleApiError('Invalid messages', 400);
+    }
+    const completed_ids = validateArrayOfStrings(bodyObject.completed_ids, 200, 32) ?? [];
+    const preferences = validatePreferences(bodyObject.preferences);
 
-  // Build bounded candidate pool from Supabase
-  try {
+    // Rate limiting (per IP for MVP)
+    const ip = getClientIp(request);
+    const rl = rateLimitCheck(`ip:${ip}`);
+    if (!rl.allowed) {
+      logEvent({ status: 'error:rate_limited', ip, locale, completed_ids_length: completed_ids.length, duration_ms: Date.now() - started });
+      return handleApiError('Rate limit exceeded. Please try again shortly.', 429, { 'Retry-After': Math.ceil(rl.resetMs / 1000).toString() });
+    }
+
+    // Build bounded candidate pool from Supabase
     const lastUserMsg = messages.filter(m => m.role === 'user').slice(-1)[0]?.content || '';
     const inferred = inferHeuristicsFromText(lastUserMsg);
     const candidates = await getCandidates(completed_ids, preferences, 20, lastUserMsg, inferred);
@@ -475,24 +492,15 @@ export async function POST(request: NextRequest) {
     try {
       model_raw = await callOpenAIJSON([...systemMsgs, ...userMsg], apiKey);
     } catch (err) {
-      // Surface a controlled error but do not fail the entire endpoint if model call fails
       logEvent({ status: 'error:model_call', ip, locale, completed_ids_length: completed_ids.length, candidates_count: candidates.length, duration_ms: Date.now() - started, error: err instanceof Error ? err.message : 'unknown' });
-      return NextResponse.json({
-        success: false,
-        error: 'Model call failed',
-        details: err instanceof Error ? err.message : 'unknown',
-      }, { status: 502 });
+      return handleApiError('Model call failed', 502, err instanceof Error ? err.message : 'unknown');
     }
 
     // Parse and validate model output
     const parsed = model_raw ? safeParseModel(model_raw) : null;
     if (!parsed) {
       logEvent({ status: 'error:invalid_model_output', ip, locale, completed_ids_length: completed_ids.length, candidates_count: candidates.length, duration_ms: Date.now() - started });
-      return NextResponse.json({
-        success: false,
-        error: 'Invalid model output',
-        model_raw,
-      }, { status: 502 });
+      return handleApiError('Invalid model output', 502, model_raw);
     }
 
     // Validate suggestions: map unknown IDs by matching names across locales, then filter to candidate set
@@ -525,9 +533,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (e) {
     logEvent({ status: 'error:candidates', ip: getClientIp(request), duration_ms: Date.now() - started, error: e instanceof Error ? e.message : 'unknown' });
-    return NextResponse.json(
-      { success: false, error: 'Failed to load candidates' },
-      { status: 500 }
-    );
+    return handleApiError('Failed to load candidates', 500, e instanceof Error ? e.message : 'unknown');
   }
 }
